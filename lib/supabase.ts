@@ -15,6 +15,8 @@ const hasValidSupabaseKey = Boolean(
 );
 
 export const isSupabaseConfigured = hasValidSupabaseUrl && hasValidSupabaseKey;
+const safeSupabaseUrl = supabaseUrl?.trim() || "https://placeholder.supabase.co";
+const safeSupabaseAnonKey = supabaseAnonKey?.trim() || "placeholder-anon-key";
 
 const canUsePersistentStorage = typeof window !== "undefined";
 const storage = canUsePersistentStorage
@@ -26,8 +28,8 @@ const storage = canUsePersistentStorage
     };
 
 export const supabase = createClient(
-  supabaseUrl ?? "https://placeholder.supabase.co",
-  supabaseAnonKey ?? "placeholder-anon-key",
+  safeSupabaseUrl,
+  safeSupabaseAnonKey,
   {
     auth: {
       storage,
