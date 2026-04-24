@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="36%" r="72%">
+      <stop offset="0%" stop-color="#10272a"/>
+      <stop offset="58%" stop-color="#071113"/>
+      <stop offset="100%" stop-color="#020607"/>
+    </radialGradient>
+    <linearGradient id="shield" x1="240" y1="170" x2="790" y2="850" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#dfe8c6"/>
+      <stop offset="52%" stop-color="#78d5bc"/>
+      <stop offset="100%" stop-color="#2a8494"/>
+    </linearGradient>
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.47 0 0 0 0 0.84 0 0 0 0 0.74 0 0 0 .55 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <path d="M512 116l312 118v230c0 224-124 374-312 455-188-81-312-231-312-455V234l312-118z" fill="none" stroke="#78d5bc" stroke-opacity=".18" stroke-width="34"/>
+  <path d="M512 159l263 99v202c0 190-101 318-263 391-162-73-263-201-263-391V258l263-99z" fill="none" stroke="url(#shield)" stroke-width="54" stroke-linejoin="round" filter="url(#glow)"/>
+  <path d="M399 507l76 76 174-196" fill="none" stroke="#dfe8c6" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M309 812h406" stroke="#78d5bc" stroke-opacity=".18" stroke-width="4"/>
+  <path d="M250 247h524M223 466h578M292 689h440" stroke="#dfe8c6" stroke-opacity=".05" stroke-width="3"/>
+</svg>
