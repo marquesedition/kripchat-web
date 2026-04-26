@@ -13,6 +13,23 @@ KripChat is a secure, real-time mobile chat for hackers and security teams. It i
 - Dark cybersecurity visual system with neon green/blue accents
 - MVP security: RLS policies, input validation, anti-spam send throttling, and an E2EE-ready data boundary
 
+## Testing And QA
+
+This project now includes automated testing foundations for both logic and web QA:
+
+- `npm run test:unit` runs Jest unit tests for core helpers and stable business logic.
+- `npm run test:unit:coverage` runs the same suite with coverage output.
+- `npm run test:qa` exports the web build, serves it locally, and runs Playwright smoke tests against public routes.
+- `npm run test` runs unit tests plus QA end-to-end checks.
+
+Current automated coverage focuses on:
+
+- validation helpers
+- anti-spam throttling
+- crypto visual helpers
+- operator identity formatting
+- landing, login, register, and preview route smoke flows in web QA
+
 ## Run Locally
 
 1. Install dependencies:
