@@ -28,51 +28,93 @@ export type UploadAttachmentInput = {
 };
 
 export async function fetchChatPreviews(currentUserId: string): Promise<ChatPreview[]> {
-  const { data: memberships, error: memberError } = await supabase
-    .from("conversation_participants")
-    .select("conversation_id")
-    .eq("profile_id", currentUserId);
-  if (memberError) throw memberError;
+  const { data, error } = await supabase.rpc("list_chat_previews");
+  if (error) throw error;
 
-  const conversationIds = memberships?.map((item) => item.conversation_id) ?? [];
-  if (!conversationIds.length) return [];
+  const rows = (data ?? []) as Array<{
+    conversation_id: string;
+    conversation_type: Conversation["type"];
+    conversation_created_at: string;
+    conversation_updated_at: string;
+    peer_id: string;
+    peer_username: string;
+    peer_avatar_url: string | null;
+    peer_push_token: string | null;
+    peer_e2ee_public_key: string | null;
+    peer_is_admin: boolean;
+    peer_online_at: string | null;
+    peer_created_at: string;
+    last_message_id: string | null;
+    last_message_sender_id: string | null;
+    last_message_body: string | null;
+    last_message_client_id: string | null;
+    last_message_status: Message["status"] | null;
+    last_message_kind: Message["kind"] | null;
+    last_message_attachment_path: string | null;
+    last_message_attachment_name: string | null;
+    last_message_attachment_mime: string | null;
+    last_message_attachment_size: number | null;
+    last_message_location_lat: number | null;
+    last_message_location_lng: number | null;
+    last_message_location_label: string | null;
+    last_message_created_at: string | null;
+  }>;
 
-  const [{ data: conversations, error: conversationError }, { data: participants, error: participantsError }, { data: messages, error: messageError }] =
-    await Promise.all([
-      supabase.from("conversations").select("*").in("id", conversationIds).order("updated_at", { ascending: false }),
-      supabase
-        .from("conversation_participants")
-        .select("conversation_id, profile_id, profile:profiles(*)")
-        .in("conversation_id", conversationIds),
-      supabase.from("messages").select("*").in("conversation_id", conversationIds).order("created_at", { ascending: false }).limit(100)
-    ]);
+  const previews = await Promise.all(
+    rows.map(async (row) => {
+      const conversation: Conversation = {
+        id: row.conversation_id,
+        type: row.conversation_type,
+        created_at: row.conversation_created_at,
+        updated_at: row.conversation_updated_at
+      };
 
-  if (conversationError) throw conversationError;
-  if (participantsError) throw participantsError;
-  if (messageError) throw messageError;
+      const peer: Profile = {
+        id: row.peer_id,
+        username: row.peer_username,
+        avatar_url: row.peer_avatar_url,
+        push_token: row.peer_push_token,
+        e2ee_public_key: row.peer_e2ee_public_key,
+        is_admin: row.peer_is_admin,
+        online_at: row.peer_online_at,
+        created_at: row.peer_created_at
+      };
 
-  const participantRecords = (participants ?? []) as Array<{ conversation_id: string; profile_id: string; profile: Profile | Profile[] | null }>;
-  const latestByConversation = new Map<string, Message>();
-  for (const message of (messages ?? []) as Message[]) {
-    if (latestByConversation.has(message.conversation_id)) continue;
-    const peer = findPeerProfile(participantRecords, message.conversation_id, currentUserId);
-    latestByConversation.set(message.conversation_id, await decryptMessageRecord(message, currentUserId, peer?.e2ee_public_key ?? null));
-  }
+      const lastMessage =
+        row.last_message_id && row.last_message_body && row.last_message_sender_id && row.last_message_status && row.last_message_kind && row.last_message_created_at
+          ? await decryptMessageRecord(
+              {
+                id: row.last_message_id,
+                conversation_id: row.conversation_id,
+                sender_id: row.last_message_sender_id,
+                body: row.last_message_body,
+                client_id: row.last_message_client_id,
+                status: row.last_message_status,
+                kind: row.last_message_kind,
+                attachment_path: row.last_message_attachment_path,
+                attachment_name: row.last_message_attachment_name,
+                attachment_mime: row.last_message_attachment_mime,
+                attachment_size: row.last_message_attachment_size,
+                location_lat: row.last_message_location_lat,
+                location_lng: row.last_message_location_lng,
+                location_label: row.last_message_location_label,
+                created_at: row.last_message_created_at
+              },
+              currentUserId,
+              peer.e2ee_public_key
+            )
+          : null;
 
-  return ((conversations ?? []) as Conversation[]).map((conversation) => {
-    const peers = participantRecords.filter((item) => item.conversation_id === conversation.id);
-    const peerRecord = peers.find((item) => {
-      const profile = Array.isArray(item.profile) ? item.profile[0] : item.profile;
-      return profile?.id !== currentUserId;
-    });
-    const peer = (Array.isArray(peerRecord?.profile) ? peerRecord?.profile[0] : peerRecord?.profile ?? null) as Profile | null;
-    return {
-      conversation,
-      peer,
-      peerOnline: isOnline(peer?.online_at),
-      lastMessage: latestByConversation.get(conversation.id) ?? null
-    };
-  });
+      return {
+        conversation,
+        peer,
+        peerOnline: isOnline(peer.online_at),
+        lastMessage
+      } satisfies ChatPreview;
+    })
+  );
+
+  return previews;
 }
 
 export async function fetchMessages(conversationId: string, currentUserId: string, before?: string): Promise<Message[]> {
