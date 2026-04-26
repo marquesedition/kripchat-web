@@ -56,14 +56,6 @@ export default function ChatScreen() {
   const visibleMessages = useMemo(() => messages.filter((message) => !hiddenIds.has(message.client_id ?? message.id)), [hiddenIds, messages]);
   const presenceStatus = peer?.online_at ? "PRESENCE SYNCED" : "PRESENCE STANDBY";
 
-  if (!userId) {
-    return <Redirect href="/login" />;
-  }
-
-  if (!conversationId) {
-    return <Redirect href="/(tabs)" />;
-  }
-
   function goBack() {
     if (router.canGoBack()) {
       router.back();
@@ -83,6 +75,14 @@ export default function ChatScreen() {
   useEffect(() => {
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   }, [visibleMessages.length]);
+
+  if (!userId) {
+    return <Redirect href="/login" />;
+  }
+
+  if (!conversationId) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   async function onSend() {
     if (!userId) return;
