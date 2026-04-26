@@ -1,7 +1,8 @@
 import type { Session } from "@supabase/supabase-js";
 import { create } from "zustand";
-import { fetchProfile, signInWithEmail, signOut as signOutService, signUpWithEmail, updateProfile } from "@/features/auth/authService";
+import { fetchProfile, signInWithEmail, signOut as signOutService, signUpWithEmail, syncE2EEPublicKey, updateProfile } from "@/features/auth/authService";
 import type { Profile } from "@/features/chat/types";
+import { ensureE2EEIdentity } from "@/lib/e2ee";
 import { supabase } from "@/lib/supabase";
 
 async function loadProfile(userId: string) {
@@ -10,6 +11,20 @@ async function loadProfile(userId: string) {
   } catch (error) {
     console.warn("Unable to load Supabase profile", error);
     return null;
+  }
+}
+
+async function loadPreparedProfile(userId: string) {
+  const identity = await ensureE2EEIdentity(userId);
+  const profile = await loadProfile(userId);
+  if (!profile) return null;
+  if (profile.e2ee_public_key === identity.publicKey) return profile;
+
+  try {
+    return (await syncE2EEPublicKey(userId, identity.publicKey)) ?? { ...profile, e2ee_public_key: identity.publicKey };
+  } catch (error) {
+    console.warn("Unable to publish E2EE public key", error);
+    return { ...profile, e2ee_public_key: identity.publicKey };
   }
 }
 
@@ -37,7 +52,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data } = await supabase.auth.getSession();
       set({ session: data.session, initialized: true });
       if (data.session?.user.id) {
-        const profile = await loadProfile(data.session.user.id);
+        const profile = await loadPreparedProfile(data.session.user.id);
         set({ profile });
       }
     } catch (error) {
@@ -48,7 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     supabase.auth.onAuthStateChange(async (_event, session) => {
       set({ session });
       if (session?.user.id) {
-        const profile = await loadProfile(session.user.id);
+        const profile = await loadPreparedProfile(session.user.id);
         set({ profile });
       } else {
         set({ profile: null });
@@ -60,7 +75,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     try {
       const session = await signInWithEmail(email, password);
-      const profile = session?.user.id ? await loadProfile(session.user.id) : null;
+      const profile = session?.user.id ? await loadPreparedProfile(session.user.id) : null;
       set({ session, profile });
     } finally {
       set({ loading: false });
@@ -71,7 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     try {
       const session = await signUpWithEmail(email, password, username);
-      const profile = session?.user.id ? await loadProfile(session.user.id) : null;
+      const profile = session?.user.id ? await loadPreparedProfile(session.user.id) : null;
       set({ session, profile });
     } finally {
       set({ loading: false });
@@ -86,7 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshProfile: async () => {
     const userId = get().session?.user.id;
     if (!userId) return;
-    const profile = await fetchProfile(userId);
+    const profile = await loadPreparedProfile(userId);
     set({ profile });
   },
 

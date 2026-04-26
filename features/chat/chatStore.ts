@@ -11,11 +11,11 @@ type ChatState = {
   messageLoading: boolean;
   activeChannel: RealtimeChannel | null;
   loadPreviews: (userId: string) => Promise<void>;
-  loadMessages: (conversationId: string) => Promise<void>;
-  loadOlderMessages: (conversationId: string) => Promise<void>;
+  loadMessages: (conversationId: string, userId: string) => Promise<void>;
+  loadOlderMessages: (conversationId: string, userId: string) => Promise<void>;
   send: (conversationId: string, senderId: string, payload: string | SendMessagePayload) => Promise<void>;
   openDirect: (userId: string, username: string) => Promise<string>;
-  subscribeToConversation: (conversationId: string) => void;
+  subscribeToConversation: (conversationId: string, userId: string) => void;
   unsubscribeActive: () => void;
 };
 
@@ -36,10 +36,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  loadMessages: async (conversationId) => {
+  loadMessages: async (conversationId, userId) => {
     set({ messageLoading: true });
     try {
-      const messages = await fetchMessages(conversationId);
+      const messages = await fetchMessages(conversationId, userId);
       set((state) => ({
         messagesByConversation: { ...state.messagesByConversation, [conversationId]: messages }
       }));
@@ -48,11 +48,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  loadOlderMessages: async (conversationId) => {
+  loadOlderMessages: async (conversationId, userId) => {
     const current = get().messagesByConversation[conversationId] ?? [];
     const oldest = current[0]?.created_at;
     if (!oldest) return;
-    const older = await fetchMessages(conversationId, oldest);
+    const older = await fetchMessages(conversationId, userId, oldest);
     set((state) => ({
       messagesByConversation: {
         ...state.messagesByConversation,
@@ -119,7 +119,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return conversationId;
   },
 
-  subscribeToConversation: (conversationId) => {
+  subscribeToConversation: (conversationId, userId) => {
     get().unsubscribeActive();
     const channel = supabase
       .channel(`conversation:${conversationId}`)
@@ -131,8 +131,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`
         },
-        (payload) => {
-          const next = decryptMessageRecord(payload.new as Message);
+        async (payload) => {
+          const next = await decryptMessageRecord(payload.new as Message, userId);
           set((state) => ({
             messagesByConversation: {
               ...state.messagesByConversation,

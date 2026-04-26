@@ -65,11 +65,11 @@ export default function ChatScreen() {
   }
 
   useEffect(() => {
-    if (!conversationId) return undefined;
-    loadMessages(conversationId).catch((error) => Alert.alert("Load failed", error.message));
-    subscribeToConversation(conversationId);
+    if (!conversationId || !userId) return undefined;
+    loadMessages(conversationId, userId).catch((error) => Alert.alert("Load failed", error.message));
+    subscribeToConversation(conversationId, userId);
     return unsubscribeActive;
-  }, [conversationId, loadMessages, subscribeToConversation, unsubscribeActive]);
+  }, [conversationId, loadMessages, subscribeToConversation, unsubscribeActive, userId]);
 
   useEffect(() => {
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
@@ -225,10 +225,10 @@ export default function ChatScreen() {
   }
 
   async function reloadThread() {
-    if (!conversationId) return;
+    if (!conversationId || !userId) return;
     setSecurityOpen(false);
     try {
-      await loadMessages(conversationId);
+      await loadMessages(conversationId, userId);
       Alert.alert("Channel synced", "Latest encrypted packets loaded.");
     } catch (error) {
       Alert.alert("Sync failed", error instanceof Error ? error.message : "Could not reload this channel.");
@@ -259,13 +259,14 @@ export default function ChatScreen() {
             <MessageBubble
               message={item}
               mine={item.sender_id === userId}
+              currentUserId={userId ?? null}
               revealDurationMs={viewWindowMode === "manual" ? visibilitySeconds * 1000 : undefined}
               onLongPress={(message, cipherText) => setSelectedPacket({ message, cipherText })}
             />
           )}
           contentContainerStyle={styles.messages}
           onStartReached={() => {
-            if (conversationId) loadOlderMessages(conversationId).catch(() => undefined);
+            if (conversationId && userId) loadOlderMessages(conversationId, userId).catch(() => undefined);
           }}
           onStartReachedThreshold={0.25}
           ListEmptyComponent={<Text style={styles.empty}>No packets received. Establish secure contact.</Text>}

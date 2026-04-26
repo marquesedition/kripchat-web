@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { canSendMessage } from "@/lib/antiSpam";
 import { decryptBlobForConversation, decryptTextForConversation, encryptBlobForConversation, encryptTextForConversation } from "@/lib/cryptoPayload";
+import { deriveConversationSharedKey } from "@/lib/e2ee";
 import { sanitizeMessage } from "@/lib/validation";
 import type { ChatPreview, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
 
@@ -39,7 +40,10 @@ export async function fetchChatPreviews(currentUserId: string): Promise<ChatPrev
   const [{ data: conversations, error: conversationError }, { data: participants, error: participantsError }, { data: messages, error: messageError }] =
     await Promise.all([
       supabase.from("conversations").select("*").in("id", conversationIds).order("updated_at", { ascending: false }),
-      supabase.from("conversation_participants").select("conversation_id, profile:profiles(*)").in("conversation_id", conversationIds),
+      supabase
+        .from("conversation_participants")
+        .select("conversation_id, profile_id, profile:profiles(*)")
+        .in("conversation_id", conversationIds),
       supabase.from("messages").select("*").in("conversation_id", conversationIds).order("created_at", { ascending: false }).limit(100)
     ]);
 
@@ -47,15 +51,16 @@ export async function fetchChatPreviews(currentUserId: string): Promise<ChatPrev
   if (participantsError) throw participantsError;
   if (messageError) throw messageError;
 
+  const participantRecords = (participants ?? []) as Array<{ conversation_id: string; profile_id: string; profile: Profile | Profile[] | null }>;
   const latestByConversation = new Map<string, Message>();
   for (const message of (messages ?? []) as Message[]) {
-    if (!latestByConversation.has(message.conversation_id)) {
-      latestByConversation.set(message.conversation_id, decryptMessageRecord(message));
-    }
+    if (latestByConversation.has(message.conversation_id)) continue;
+    const peer = findPeerProfile(participantRecords, message.conversation_id, currentUserId);
+    latestByConversation.set(message.conversation_id, await decryptMessageRecord(message, currentUserId, peer?.e2ee_public_key ?? null));
   }
 
   return ((conversations ?? []) as Conversation[]).map((conversation) => {
-    const peers = (participants ?? []).filter((item) => item.conversation_id === conversation.id);
+    const peers = participantRecords.filter((item) => item.conversation_id === conversation.id);
     const peerRecord = peers.find((item) => {
       const profile = Array.isArray(item.profile) ? item.profile[0] : item.profile;
       return profile?.id !== currentUserId;
@@ -70,7 +75,7 @@ export async function fetchChatPreviews(currentUserId: string): Promise<ChatPrev
   });
 }
 
-export async function fetchMessages(conversationId: string, before?: string): Promise<Message[]> {
+export async function fetchMessages(conversationId: string, currentUserId: string, before?: string): Promise<Message[]> {
   let query = supabase
     .from("messages")
     .select("*")
@@ -82,7 +87,11 @@ export async function fetchMessages(conversationId: string, before?: string): Pr
 
   const { data, error } = await query;
   if (error) throw error;
-  return ((data ?? []) as Message[]).map(decryptMessageRecord).reverse();
+  const peer = await fetchConversationPeer(conversationId, currentUserId);
+  const decrypted = await Promise.all(
+    ((data ?? []) as Message[]).map((message) => decryptMessageRecord(message, currentUserId, peer?.e2ee_public_key ?? null))
+  );
+  return decrypted.reverse();
 }
 
 export async function sendMessage(conversationId: string, senderId: string, payload: SendMessagePayload, clientId: string) {
@@ -109,8 +118,9 @@ export async function sendMessage(conversationId: string, senderId: string, payl
     created_at: new Date().toISOString()
   };
 
-  const encryptedBody = encryptTextForConversation(clean, conversationId);
-  const encryptedLocationLabel = payload.locationLabel ? encryptTextForConversation(payload.locationLabel, conversationId) : null;
+  const sharedKey = await requireConversationSharedKey(conversationId, senderId);
+  const encryptedBody = encryptTextForConversation(clean, sharedKey);
+  const encryptedLocationLabel = payload.locationLabel ? encryptTextForConversation(payload.locationLabel, sharedKey) : null;
 
   const { data, error } = await supabase
     .from("messages")
@@ -133,7 +143,7 @@ export async function sendMessage(conversationId: string, senderId: string, payl
     .single();
 
   if (error) throw error;
-  return { optimistic, saved: decryptMessageRecord(data as Message) };
+  return { optimistic, saved: await decryptMessageRecord(data as Message, senderId) };
 }
 
 export async function uploadChatAttachment(input: UploadAttachmentInput) {
@@ -142,7 +152,8 @@ export async function uploadChatAttachment(input: UploadAttachmentInput) {
   const safeName = input.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const filePath = `${input.conversationId}/${input.senderId}/${Date.now()}-${safeName}`;
 
-  const encryptedBlob = await encryptBlobForConversation(blob, input.conversationId);
+  const sharedKey = await requireConversationSharedKey(input.conversationId, input.senderId);
+  const encryptedBlob = await encryptBlobForConversation(blob, sharedKey);
 
   const { data, error } = await supabase.storage
     .from(ATTACHMENT_BUCKET)
@@ -167,12 +178,14 @@ export async function createAttachmentSignedUrl(path: string) {
   return data.signedUrl;
 }
 
-export async function createDecryptedAttachmentUrl(path: string, conversationId: string, mimeType: string) {
+export async function createDecryptedAttachmentUrl(path: string, conversationId: string, currentUserId: string, mimeType: string) {
   const signedUrl = await createAttachmentSignedUrl(path);
   const response = await fetch(signedUrl);
   if (!response.ok) throw new Error("Unable to download encrypted payload");
   const encryptedBlob = await response.blob();
-  const decryptedBlob = await decryptBlobForConversation(encryptedBlob, conversationId, mimeType);
+  const peer = await fetchConversationPeer(conversationId, currentUserId);
+  const sharedKey = peer?.e2ee_public_key ? await deriveConversationSharedKey(currentUserId, peer.e2ee_public_key, conversationId) : null;
+  const decryptedBlob = await decryptBlobForConversation(encryptedBlob, conversationId, mimeType, sharedKey);
 
   if (typeof URL !== "undefined" && URL.createObjectURL) {
     return URL.createObjectURL(decryptedBlob);
@@ -181,11 +194,12 @@ export async function createDecryptedAttachmentUrl(path: string, conversationId:
   return blobToDataUri(decryptedBlob);
 }
 
-export function decryptMessageRecord(message: Message): Message {
+export async function decryptMessageRecord(message: Message, currentUserId: string, peerPublicKey?: string | null): Promise<Message> {
+  const sharedKey = peerPublicKey ? await deriveConversationSharedKey(currentUserId, peerPublicKey, message.conversation_id) : null;
   return {
     ...message,
-    body: decryptTextForConversation(message.body, message.conversation_id),
-    location_label: message.location_label ? decryptTextForConversation(message.location_label, message.conversation_id) : null
+    body: decryptTextForConversation(message.body, message.conversation_id, sharedKey),
+    location_label: message.location_label ? decryptTextForConversation(message.location_label, message.conversation_id, sharedKey) : null
   };
 }
 
@@ -222,6 +236,37 @@ function fallbackBodyForKind(kind: MessageKind, name?: string | null) {
   if (kind === "document") return `[document] ${name ?? "secure document"}`;
   if (kind === "location") return "[location] secure coordinates";
   return "";
+}
+
+async function fetchConversationPeer(conversationId: string, currentUserId: string) {
+  const { data, error } = await supabase
+    .from("conversation_participants")
+    .select("profile_id, profile:profiles(*)")
+    .eq("conversation_id", conversationId);
+  if (error) throw error;
+  return findPeerProfile((data ?? []) as Array<{ conversation_id?: string; profile_id: string; profile: Profile | Profile[] | null }>, conversationId, currentUserId);
+}
+
+function findPeerProfile(
+  participants: Array<{ conversation_id?: string; profile_id: string; profile: Profile | Profile[] | null }>,
+  conversationId: string,
+  currentUserId: string
+) {
+  const peerRecord = participants.find((item) => {
+    if (item.conversation_id && item.conversation_id !== conversationId) return false;
+    const profile = Array.isArray(item.profile) ? item.profile[0] : item.profile;
+    return profile?.id !== currentUserId;
+  });
+  return (Array.isArray(peerRecord?.profile) ? peerRecord?.profile[0] : peerRecord?.profile ?? null) as Profile | null;
+}
+
+async function requireConversationSharedKey(conversationId: string, currentUserId: string) {
+  const peer = await fetchConversationPeer(conversationId, currentUserId);
+  if (!peer?.e2ee_public_key) {
+    throw new Error("The other user has not published an E2EE key yet. Ask them to sign in again to complete secure setup.");
+  }
+
+  return deriveConversationSharedKey(currentUserId, peer.e2ee_public_key, conversationId);
 }
 
 function blobToDataUri(blob: Blob) {

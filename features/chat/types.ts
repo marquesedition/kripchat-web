@@ -3,6 +3,7 @@ export type Profile = {
   username: string;
   avatar_url: string | null;
   push_token: string | null;
+  e2ee_public_key: string | null;
   online_at: string | null;
   created_at: string;
 };

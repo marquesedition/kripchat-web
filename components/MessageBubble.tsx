@@ -17,11 +17,12 @@ loadProcessedMessageKeys();
 type Props = {
   message: Message;
   mine: boolean;
+  currentUserId?: string | null;
   revealDurationMs?: number;
   onLongPress?: (message: Message, cipherText: string) => void;
 };
 
-export function MessageBubble({ message, mine, revealDurationMs, onLongPress }: Props) {
+export function MessageBubble({ message, mine, currentUserId, revealDurationMs, onLongPress }: Props) {
   const time = new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const messageKey = message.client_id ?? message.id;
   const senderCode = formatOpsCode(message.sender_id);
@@ -107,12 +108,17 @@ export function MessageBubble({ message, mine, revealDurationMs, onLongPress }: 
 
   useEffect(() => {
     let active = true;
-    if (!message.attachment_path) {
+    if (!message.attachment_path || !currentUserId) {
       setAttachmentUrl(null);
       return undefined;
     }
 
-    createDecryptedAttachmentUrl(message.attachment_path, message.conversation_id, message.attachment_mime ?? "application/octet-stream")
+    createDecryptedAttachmentUrl(
+      message.attachment_path,
+      message.conversation_id,
+      currentUserId,
+      message.attachment_mime ?? "application/octet-stream"
+    )
       .then((url) => {
         if (active) setAttachmentUrl(url);
       })
@@ -123,7 +129,7 @@ export function MessageBubble({ message, mine, revealDurationMs, onLongPress }: 
     return () => {
       active = false;
     };
-  }, [message.attachment_mime, message.attachment_path, message.conversation_id]);
+  }, [currentUserId, message.attachment_mime, message.attachment_path, message.conversation_id]);
 
   return (
     <Pressable delayLongPress={260} onLongPress={() => onLongPress?.(message, cipherText)} style={styles.pressable}>

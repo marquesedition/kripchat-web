@@ -50,6 +50,19 @@ export async function updateProfile(userId: string, patch: Pick<Profile, "userna
   return data as Profile;
 }
 
+export async function syncE2EEPublicKey(userId: string, publicKey: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      e2ee_public_key: publicKey
+    })
+    .eq("id", userId)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  return (data as Profile | null) ?? null;
+}
+
 export function getSessionUserId(session: Session | null) {
   return session?.user.id ?? null;
 }
