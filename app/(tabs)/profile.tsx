@@ -15,6 +15,7 @@ export default function ProfileScreen() {
   const signOut = useAuthStore((state) => state.signOut);
   const [username, setUsername] = useState(profile?.username ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
+  const presenceLabel = profile?.online_at ? "PRESENCE SYNCED" : "PRESENCE STANDBY";
 
   useEffect(() => {
     setUsername(profile?.username ?? "");
@@ -51,7 +52,7 @@ export default function ProfileScreen() {
               <Avatar username={username} avatarUrl={avatarUrl} size={82} online />
               <View style={styles.avatarText}>
                 <Text style={styles.handle}>@{profile?.username ?? "operator"}</Text>
-                <Text style={styles.meta}>REALTIME PRESENCE: ACTIVE</Text>
+                <Text style={styles.meta}>{presenceLabel}</Text>
                 <Text style={styles.metaMuted}>Public profile data only. Message content remains in channel protocol.</Text>
               </View>
             </View>

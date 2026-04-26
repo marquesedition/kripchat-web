@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -54,6 +54,15 @@ export default function ChatScreen() {
   const peerCode = formatOpsCode(peer?.username);
   const threadCode = formatShortId(conversationId ?? "0000");
   const visibleMessages = useMemo(() => messages.filter((message) => !hiddenIds.has(message.client_id ?? message.id)), [hiddenIds, messages]);
+  const presenceStatus = peer?.online_at ? "PRESENCE SYNCED" : "PRESENCE STANDBY";
+
+  if (!userId) {
+    return <Redirect href="/login" />;
+  }
+
+  if (!conversationId) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   function goBack() {
     if (router.canGoBack()) {
@@ -355,12 +364,12 @@ export default function ChatScreen() {
               <View style={styles.infoGrid}>
                 <InfoCell label="HOST" value={peerCode} />
                 <InfoCell label="THREAD" value={threadCode} />
-                <InfoCell label="DEVICE IP" value="31.03.101.225" />
-                <InfoCell label="VPN IP" value="18.197.063.031" />
-                <InfoCell label="PROTOCOL" value="RSA-4096 / UDP" />
-                <InfoCell label="DATAFLOW" value="ACTIVE" />
+                <InfoCell label="SESSION" value="AUTHENTICATED" />
+                <InfoCell label="PRESENCE" value={presenceStatus} />
+                <InfoCell label="TRANSPORT" value="HTTPS + REALTIME" />
+                <InfoCell label="PAYLOAD" value="CLIENT ENCRYPTED" />
                 <InfoCell label="VIEW WINDOW" value={viewWindowMode === "auto" ? "AUTO READ" : `${visibilitySeconds}s MANUAL`} />
-                <InfoCell label="AUTO MODEL" value="200 WPM + CHARS" />
+                <InfoCell label="KEY MODEL" value="DEVICE-HELD KEYPAIR" />
               </View>
               <Text style={styles.optionTitle}>VIEW WINDOW</Text>
               <View style={styles.modeRow}>

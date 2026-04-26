@@ -19,6 +19,8 @@ export default function ChatListScreen() {
   const openDirect = useChatStore((state) => state.openDirect);
   const [modalOpen, setModalOpen] = useState(false);
   const [username, setUsername] = useState("");
+  const inboxStatus = loading ? "Refreshing secure channels" : "Encrypted inbox ready";
+  const syncStatus = previews.some((item) => item.peerOnline) ? "Presence synced" : "Waiting for live presence";
 
   const refresh = useCallback(() => {
     if (userId) loadPreviews(userId).catch((error) => Alert.alert("Sync failed", error.message));
@@ -59,8 +61,8 @@ export default function ChatListScreen() {
         </View>
 
         <View style={styles.networkStrip}>
-          <Text style={styles.stripText}>DEVICE IP: 31.03.101.225</Text>
-          <Text style={styles.stripText}>VPN IP: 18.197.063.031</Text>
+          <Text style={styles.stripText}>{inboxStatus}</Text>
+          <Text style={styles.stripText}>{syncStatus}</Text>
         </View>
 
         {loading && !previews.length ? <ActivityIndicator color={colors.green} style={styles.loader} /> : null}

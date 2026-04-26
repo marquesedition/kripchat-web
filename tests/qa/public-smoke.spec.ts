@@ -27,6 +27,16 @@ test.describe("public web experience", () => {
     await expect(page.getByText("Register").first()).toBeVisible();
   });
 
+  test("protected routes redirect unauthenticated users back to login", async ({ page }) => {
+    await page.goto("/profile");
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByPlaceholder("operator@email.com")).toBeVisible();
+
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByText("Secure comms for fast teams.")).toBeVisible();
+  });
+
   test("preview routes render the key product surfaces", async ({ page }) => {
     await page.goto("/preview/inbox");
     await expect(page.getByText(/Contacts \[\d+\]/i)).toBeVisible();

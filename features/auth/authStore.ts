@@ -5,6 +5,8 @@ import type { Profile } from "@/features/chat/types";
 import { ensureE2EEIdentity } from "@/lib/e2ee";
 import { supabase } from "@/lib/supabase";
 
+let authSubscriptionBound = false;
+
 async function loadProfile(userId: string) {
   try {
     return await fetchProfile(userId);
@@ -59,6 +61,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.warn("Unable to bootstrap Supabase auth", error);
       set({ session: null, profile: null, initialized: true });
     }
+
+    if (authSubscriptionBound) return;
+    authSubscriptionBound = true;
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
       set({ session });
