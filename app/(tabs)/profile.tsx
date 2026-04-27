@@ -167,10 +167,10 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   form: {
-    gap: 16
+    gap: 18
   },
   fieldGroup: {
-    gap: 10
+    gap: 12
   },
   label: {
     color: colors.faint,
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   input: {
-    minHeight: 50,
+    minHeight: 52,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
@@ -194,9 +194,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "flex-end",
-    gap: 14,
-    marginTop: spacing.sm,
-    paddingTop: spacing.md,
+    gap: 12,
+    marginTop: spacing.md,
+    paddingTop: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border
   },

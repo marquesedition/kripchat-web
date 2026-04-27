@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: 12,
     paddingHorizontal: spacing.md,
-    paddingTop: 12,
+    paddingTop: 14,
     paddingBottom: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 50,
+    minHeight: 52,
     maxHeight: 120,
     borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderStrong,
     backgroundColor: "rgba(8, 18, 19, 0.98)",
-    padding: spacing.md,
+    padding: spacing.lg,
     gap: 10
   },
   toolGrid: {
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   locationInput: {
-    minHeight: 50,
+    minHeight: 52,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,

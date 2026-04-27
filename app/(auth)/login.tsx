@@ -71,12 +71,14 @@ export default function LoginScreen() {
                 style={styles.input}
               />
             </View>
-            <GlassButton label={loading ? "Authenticating..." : "Enter"} disabled={loading} onPress={onSubmit} />
-            <Link href="/(auth)/register" asChild>
-              <Pressable style={styles.linkButton}>
-                <Text style={styles.linkText}>Need a handle? Register</Text>
-              </Pressable>
-            </Link>
+            <View style={styles.actionStack}>
+              <GlassButton label={loading ? "Authenticating..." : "Enter"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
+              <Link href="/(auth)/register" asChild>
+                <Pressable style={styles.linkButton}>
+                  <Text style={styles.linkText}>Need a handle? Register</Text>
+                </Pressable>
+              </Link>
+            </View>
           </GlassCard>
         </View>
       </KeyboardAvoidingView>
@@ -119,10 +121,14 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: spacing.lg,
-    gap: 14
+    gap: 0
   },
   inputStack: {
-    gap: 10
+    gap: 12
+  },
+  actionStack: {
+    marginTop: spacing.lg,
+    gap: 12
   },
   input: {
     minHeight: 54,
@@ -137,8 +143,10 @@ const styles = StyleSheet.create({
   },
   linkButton: {
     alignItems: "center",
-    paddingVertical: 8,
-    marginTop: 4
+    paddingVertical: 10
+  },
+  primaryButton: {
+    minHeight: 48
   },
   linkText: {
     color: colors.blue,
