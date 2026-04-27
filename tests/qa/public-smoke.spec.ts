@@ -23,7 +23,7 @@ test.describe("public web experience", () => {
     await expect(page.getByPlaceholder("hacker_handle")).toBeVisible();
     await expect(page.getByPlaceholder("password")).toBeVisible();
     await expect(page.getByText("Register").first()).toBeVisible();
-    await expect(page.getByText("Email verification is required before you can start chatting.")).toBeVisible();
+    await expect(page.getByText("Después del registro debes confirmar el email enviado por Supabase.")).toBeVisible();
   });
 
   test("protected profile route redirects unauthenticated users to login", async ({ page }) => {

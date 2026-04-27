@@ -31,7 +31,7 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } catch (error) {
       if (isEmailNotConfirmedError(error)) {
-        Alert.alert("Email confirmation required", "Confirm your email from the link in your inbox, then sign in.");
+        Alert.alert("Email confirmation required", "Confirma tu email desde el mensaje de Supabase y luego inicia sesión.");
         return;
       }
       Alert.alert("Access denied", getUserFacingErrorMessage(error, "Unable to sign in."));

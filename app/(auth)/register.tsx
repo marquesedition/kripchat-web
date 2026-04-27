@@ -28,15 +28,11 @@ export default function RegisterScreen() {
     }
     try {
       const result = await signUp(email, password, normalizeUsername(username));
-      if (result.emailConfirmationRequired) {
-        Alert.alert(
-          "Email confirmation required",
-          `We sent a confirmation link to ${result.email}. Confirm it before logging in.`
-        );
-        router.replace("/(auth)/login");
-        return;
-      }
-      router.replace("/(tabs)");
+      Alert.alert(
+        "Confirmación de email requerida",
+        `Registro completado. Revisa el correo de Supabase en ${result.email} y confirma tu email antes de iniciar sesión.`
+      );
+      router.replace("/(auth)/login");
     } catch (error) {
       Alert.alert("Registration failed", getUserFacingErrorMessage(error, "Unable to create account."));
     }
@@ -80,7 +76,7 @@ export default function RegisterScreen() {
             </View>
             <View style={styles.actionStack}>
               <GlassButton label={loading ? "Provisioning..." : "Register"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
-              <Text style={styles.notice}>Email verification is required before you can start chatting.</Text>
+              <Text style={styles.notice}>Después del registro debes confirmar el email enviado por Supabase.</Text>
               <Link href="/(auth)/login" asChild>
                 <Pressable style={styles.linkButton}>
                   <Text style={styles.linkText}>Already cleared? Log in</Text>
