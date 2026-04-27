@@ -41,7 +41,6 @@ export async function fetchChatPreviews(currentUserId: string): Promise<ChatPrev
     peer_avatar_url: string | null;
     peer_push_token: string | null;
     peer_e2ee_public_key: string | null;
-    peer_is_admin: boolean;
     peer_online_at: string | null;
     peer_created_at: string;
     last_message_id: string | null;
@@ -75,7 +74,6 @@ export async function fetchChatPreviews(currentUserId: string): Promise<ChatPrev
         avatar_url: row.peer_avatar_url,
         push_token: row.peer_push_token,
         e2ee_public_key: row.peer_e2ee_public_key,
-        is_admin: row.peer_is_admin,
         online_at: row.peer_online_at,
         created_at: row.peer_created_at
       };
