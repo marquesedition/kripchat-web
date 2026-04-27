@@ -37,8 +37,9 @@ Current automated coverage focuses on:
 - anti-spam throttling
 - crypto visual helpers
 - operator identity formatting
-- auth service signup/confirmation behavior
-- direct conversation guardrails (missing session, unconfirmed email, RLS failure mapping)
+- auth service signup/signin/signout and confirmation behavior
+- direct conversation guardrails (missing session, unconfirmed email, RLS failure mapping, happy path)
+- chat send flow by message kind (text, image, video, audio, document, location)
 - login/register/protected-route web QA smoke flows
 
 ### Unit Report (Allure-like local dashboard)

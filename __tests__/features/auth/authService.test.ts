@@ -1,4 +1,4 @@
-import { isEmailNotConfirmedError, signUpWithEmail } from "@/features/auth/authService";
+import { isEmailNotConfirmedError, signInWithEmail, signOut, signUpWithEmail } from "@/features/auth/authService";
 import { supabase } from "@/lib/supabase";
 
 jest.mock("@/lib/supabase", () => ({
@@ -58,5 +58,39 @@ describe("authService sign-up and auth error helpers", () => {
     expect(isEmailNotConfirmedError({ code: "email_not_confirmed", message: "Auth failed" })).toBe(true);
     expect(isEmailNotConfirmedError({ code: "400", message: "Email not confirmed" })).toBe(true);
     expect(isEmailNotConfirmedError({ code: "401", message: "Invalid login credentials" })).toBe(false);
+  });
+
+  it("signs in using a trimmed email and returns the session", async () => {
+    const session = { user: { id: "user-1" } };
+    (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue({
+      data: { session },
+      error: null
+    });
+
+    await expect(signInWithEmail(" agent@example.com ", "super-secret")).resolves.toEqual(session);
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: "agent@example.com",
+      password: "super-secret"
+    });
+  });
+
+  it("throws sign-in errors from Supabase", async () => {
+    (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue({
+      data: { session: null },
+      error: new Error("Invalid login credentials")
+    });
+
+    await expect(signInWithEmail("agent@example.com", "bad-pass")).rejects.toThrow("Invalid login credentials");
+  });
+
+  it("delegates sign-out to Supabase", async () => {
+    (supabase.auth.signOut as jest.Mock).mockResolvedValue({ error: null });
+    await expect(signOut()).resolves.toBeUndefined();
+    expect(supabase.auth.signOut).toHaveBeenCalled();
+  });
+
+  it("throws sign-out errors from Supabase", async () => {
+    (supabase.auth.signOut as jest.Mock).mockResolvedValue({ error: new Error("Network error") });
+    await expect(signOut()).rejects.toThrow("Network error");
   });
 });
