@@ -6,6 +6,8 @@ web-build/
 coverage/
 playwright-report/
 test-results/
+jest_html_reporters.html
+jest-html-reporters-attach/
 .env
 .DS_Store
 *.jks
