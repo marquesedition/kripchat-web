@@ -4,7 +4,7 @@ test.describe("public web experience", () => {
   test("root redirects unauthenticated users to login", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByText("Secure comms for fast teams.")).toBeVisible();
+    await expect(page.getByText("Private chat for your team.")).toBeVisible();
   });
 
   test("login screen keeps the critical auth fields visible", async ({ page }) => {
@@ -12,7 +12,7 @@ test.describe("public web experience", () => {
 
     await expect(page.getByPlaceholder("operator@email.com")).toBeVisible();
     await expect(page.getByPlaceholder("password")).toBeVisible();
-    await expect(page.getByText("Secure comms for fast teams.")).toBeVisible();
+    await expect(page.getByText("Private chat for your team.")).toBeVisible();
     await expect(page.getByText("Enter").first()).toBeVisible();
   });
 

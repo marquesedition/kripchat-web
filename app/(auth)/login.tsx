@@ -44,8 +44,8 @@ export default function LoginScreen() {
         <View style={styles.panel}>
           <View style={styles.header}>
             <Text style={styles.kicker}>KRIPCHAT</Text>
-            <Text style={styles.title}>Secure comms for fast teams.</Text>
-            <Text style={styles.subtitle}>Private 1:1 realtime chat with a glass-dark command center feel.</Text>
+            <Text style={styles.title}>Private chat for your team.</Text>
+            <Text style={styles.subtitle}>Sign in to message users, share files, and manage your profile.</Text>
           </View>
 
           <GlassCard style={styles.card}>
