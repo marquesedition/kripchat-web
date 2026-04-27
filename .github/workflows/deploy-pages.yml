@@ -29,6 +29,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prepare web build metadata
+        run: |
+          echo "EXPO_PUBLIC_APP_VERSION=$(node -p "require('./app.json').expo.version")" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_WEB_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_GIT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

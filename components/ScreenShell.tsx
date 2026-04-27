@@ -1,10 +1,14 @@
 import { PropsWithChildren } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getPublicBuildLabel } from "@/lib/buildInfo";
 import { colors } from "@/lib/theme";
 
 export function ScreenShell({ children }: PropsWithChildren) {
+  const showWebFooter = Platform.OS === "web";
+  const versionLabel = getPublicBuildLabel();
+
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -15,7 +19,14 @@ export function ScreenShell({ children }: PropsWithChildren) {
       <View style={styles.vignette} />
       <View style={[styles.scanLine, styles.scanTop]} />
       <View style={[styles.scanLine, styles.scanBottom]} />
-      <SafeAreaView style={styles.safe}>{children}</SafeAreaView>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.content}>{children}</View>
+        {showWebFooter ? (
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>{versionLabel}</Text>
+          </View>
+        ) : null}
+      </SafeAreaView>
     </View>
   );
 }
@@ -27,6 +38,22 @@ const styles = StyleSheet.create({
   },
   safe: {
     flex: 1
+  },
+  content: {
+    flex: 1
+  },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(156, 194, 178, 0.18)",
+    backgroundColor: "rgba(0, 0, 0, 0.24)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    alignItems: "center"
+  },
+  footerText: {
+    color: colors.faint,
+    fontSize: 11,
+    letterSpacing: 0.3
   },
   vignette: {
     ...StyleSheet.absoluteFillObject,
