@@ -77,7 +77,7 @@ export default function ChatScreen() {
   }, [visibleMessages.length]);
 
   if (!userId) {
-    return <Redirect href="/login" />;
+    return <Redirect href="/(auth)/login" />;
   }
 
   if (!conversationId) {
