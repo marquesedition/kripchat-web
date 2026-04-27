@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { Link, router } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
@@ -14,8 +14,25 @@ import { isValidEmail } from "@/lib/validation";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const params = useLocalSearchParams<{ confirmed?: string; confirm_error?: string }>();
   const loading = useAuthStore((state) => state.loading);
   const signIn = useAuthStore((state) => state.signIn);
+
+  useEffect(() => {
+    const confirmed = Array.isArray(params.confirmed) ? params.confirmed[0] : params.confirmed;
+    const confirmError = Array.isArray(params.confirm_error) ? params.confirm_error[0] : params.confirm_error;
+
+    if (confirmed === "1") {
+      Alert.alert("Email confirmado", "Tu email fue confirmado. Ya puedes iniciar sesión.");
+      router.replace("/(auth)/login");
+      return;
+    }
+
+    if (confirmError) {
+      Alert.alert("Error al confirmar email", confirmError);
+      router.replace("/(auth)/login");
+    }
+  }, [params.confirm_error, params.confirmed]);
 
   async function onSubmit() {
     if (!isSupabaseConfigured) {

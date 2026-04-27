@@ -9,6 +9,17 @@ export type SignUpResult = {
   email: string;
 };
 
+function trimSlash(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+export function resolveEmailConfirmRedirectUrl(origin?: string) {
+  const fromEnv = process.env.EXPO_PUBLIC_SITE_URL?.trim();
+  if (fromEnv) return `${trimSlash(fromEnv)}/auth/confirm`;
+  if (origin) return `${trimSlash(origin)}/auth/confirm`;
+  return "https://kripchat.com/auth/confirm";
+}
+
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
   if (error) throw error;
@@ -18,10 +29,13 @@ export async function signInWithEmail(email: string, password: string) {
 export async function signUpWithEmail(email: string, password: string, username: string) {
   const cleanUsername = normalizeUsername(username);
   const cleanEmail = email.trim().toLowerCase();
+  const webOrigin = typeof window !== "undefined" && window.location ? window.location.origin : undefined;
+  const emailRedirectTo = resolveEmailConfirmRedirectUrl(webOrigin);
   const { data, error } = await supabase.auth.signUp({
     email: cleanEmail,
     password,
     options: {
+      emailRedirectTo,
       data: {
         username: cleanUsername
       }

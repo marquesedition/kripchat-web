@@ -35,7 +35,7 @@ export const supabase = createClient(
       storage,
       autoRefreshToken: canUsePersistentStorage,
       persistSession: canUsePersistentStorage,
-      detectSessionInUrl: false
+      detectSessionInUrl: canUsePersistentStorage
     },
     realtime: {
       params: {

@@ -1,4 +1,4 @@
-import { isEmailNotConfirmedError, signInWithEmail, signOut, signUpWithEmail } from "@/features/auth/authService";
+import { isEmailNotConfirmedError, resolveEmailConfirmRedirectUrl, signInWithEmail, signOut, signUpWithEmail } from "@/features/auth/authService";
 import { supabase } from "@/lib/supabase";
 
 jest.mock("@/lib/supabase", () => ({
@@ -32,6 +32,7 @@ describe("authService sign-up and auth error helpers", () => {
       email: "agent@example.com",
       password: "12345678",
       options: {
+        emailRedirectTo: "https://kripchat.com/auth/confirm",
         data: {
           username: "agent_user"
         }
@@ -92,5 +93,10 @@ describe("authService sign-up and auth error helpers", () => {
   it("throws sign-out errors from Supabase", async () => {
     (supabase.auth.signOut as jest.Mock).mockResolvedValue({ error: new Error("Network error") });
     await expect(signOut()).rejects.toThrow("Network error");
+  });
+
+  it("resolves a standard public confirm URL from site origin", () => {
+    expect(resolveEmailConfirmRedirectUrl("https://kripchat.com")).toBe("https://kripchat.com/auth/confirm");
+    expect(resolveEmailConfirmRedirectUrl("https://kripchat.com/")).toBe("https://kripchat.com/auth/confirm");
   });
 });

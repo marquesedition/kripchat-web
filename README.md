@@ -85,6 +85,7 @@ cp .env.example .env
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+EXPO_PUBLIC_SITE_URL=https://kripchat.com
 ```
 
 4. Apply the Supabase migration in `supabase/migrations/202604220001_kripchat_schema.sql`.
