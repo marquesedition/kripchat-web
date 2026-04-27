@@ -20,6 +20,9 @@ This project now includes automated testing foundations for both logic and web Q
 - `npm run test:unit` runs Jest unit tests for core helpers and stable business logic.
 - `npm run test:unit:coverage` runs the same suite with coverage output.
 - `npm run test:qa` exports the web build, serves it locally, and runs Playwright smoke tests against public routes.
+- `npm run test:qa:headed` runs the same QA flow with a visible browser.
+- `npm run qa:report:open` opens the latest Playwright HTML report in your browser.
+- `npm run test:qa:report` runs QA and opens the report immediately.
 - `npm run test` runs unit tests plus QA end-to-end checks.
 
 Current automated coverage focuses on:
@@ -28,7 +31,23 @@ Current automated coverage focuses on:
 - anti-spam throttling
 - crypto visual helpers
 - operator identity formatting
-- landing, login, register, and preview route smoke flows in web QA
+- auth service signup/confirmation behavior
+- direct conversation guardrails (missing session, unconfirmed email, RLS failure mapping)
+- login/register/protected-route web QA smoke flows
+
+### QA Report (Allure-like local dashboard)
+
+Playwright's HTML report gives a visual test dashboard similar to Allure for local use, including per-test steps, traces, screenshots on failure, and filtering by project.
+
+```bash
+npm run test:qa:report
+```
+
+If you already ran QA and only want to open the report again:
+
+```bash
+npm run qa:report:open
+```
 
 ## Run Locally
 
@@ -57,6 +76,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
 
 ```bash
 npx expo start
+```
 
 For web development:
 
@@ -127,7 +147,6 @@ Useful profiles:
 - `production`: store-ready build with auto-incrementing version code/build number
 
 After the first successful production builds, you can submit them with EAS Submit or upload them manually to App Store Connect and Google Play Console.
-```
 
 ## Supabase Notes
 

@@ -16,7 +16,10 @@
     "test:unit": "jest --runInBand",
     "test:unit:coverage": "jest --runInBand --coverage",
     "qa:serve": "http-server dist -p 4193 -c-1 -e html",
-    "test:qa": "npm run web:export && start-server-and-test 'npm run qa:serve' http://127.0.0.1:4193 'playwright test'"
+    "test:qa": "npm run web:export && start-server-and-test 'npm run qa:serve' http://127.0.0.1:4193 'playwright test'",
+    "test:qa:headed": "npm run web:export && start-server-and-test 'npm run qa:serve' http://127.0.0.1:4193 'playwright test --headed'",
+    "qa:report:open": "playwright show-report",
+    "test:qa:report": "npm run test:qa && npm run qa:report:open"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.10",

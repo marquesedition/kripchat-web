@@ -1,12 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("public web experience", () => {
-  test("landing communicates status, ownership, and entry points", async ({ page }) => {
+  test("root redirects unauthenticated users to login", async ({ page }) => {
     await page.goto("/");
-
-    await expect(page.getByText("KripChat es un proyecto propietario de Marques Edition y sigue en desarrollo.")).toBeVisible();
-    await expect(page.getByText("Copyright © Marques Edition. Todos los derechos reservados.")).toBeVisible();
-    await expect(page.getByText("Iniciar sesion").first()).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByText("Secure comms for fast teams.")).toBeVisible();
   });
 
   test("login screen keeps the critical auth fields visible", async ({ page }) => {
@@ -18,34 +16,32 @@ test.describe("public web experience", () => {
     await expect(page.getByText("Enter").first()).toBeVisible();
   });
 
-  test("register screen exposes onboarding fields", async ({ page }) => {
+  test("register screen exposes onboarding and email confirmation notice", async ({ page }) => {
     await page.goto("/register");
 
     await expect(page.getByPlaceholder("operator@email.com")).toBeVisible();
     await expect(page.getByPlaceholder("hacker_handle")).toBeVisible();
     await expect(page.getByPlaceholder("password")).toBeVisible();
     await expect(page.getByText("Register").first()).toBeVisible();
+    await expect(page.getByText("Email verification is required before you can start chatting.")).toBeVisible();
   });
 
-  test("protected routes redirect unauthenticated users back to login", async ({ page }) => {
+  test("protected routes redirect unauthenticated users to login", async ({ page }) => {
     await page.goto("/profile");
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByPlaceholder("operator@email.com")).toBeVisible();
 
-    await page.goto("/admin");
+    await page.goto("/chat/test-thread");
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByText("Secure comms for fast teams.")).toBeVisible();
   });
 
-  test("preview routes render the key product surfaces", async ({ page }) => {
-    await page.goto("/preview/inbox");
-    await expect(page.getByText(/Contacts \[\d+\]/i)).toBeVisible();
-    await expect(page.getByText(/MI-\d{3}/i)).toBeVisible();
+  test("auth screens are cross-linked", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByText("Need a handle? Register").click();
+    await expect(page).toHaveURL(/\/register$/);
 
-    await page.goto("/preview/thread");
-    await expect(page.getByText(/SECURE CHANNEL/i).first()).toBeVisible();
-
-    await page.goto("/preview/profile");
-    await expect(page.getByText(/^Profile$/i)).toBeVisible();
+    await page.getByText("Already cleared? Log in").click();
+    await expect(page).toHaveURL(/\/login$/);
   });
 });
