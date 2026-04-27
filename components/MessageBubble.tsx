@@ -11,6 +11,7 @@ import type { Message } from "@/features/chat/types";
 type CryptoPhase = "decrypting" | "visible" | "secured" | "encrypted";
 
 const PROCESSED_STORAGE_KEY = "krypchat.processed-message-keys.v1";
+const AUTO_REVEAL_MAX_AGE_MS = 15_000;
 const processedMessageKeys = new Set<string>();
 loadProcessedMessageKeys();
 
@@ -28,8 +29,11 @@ export function MessageBubble({ message, mine, currentUserId, revealDurationMs, 
   const senderCode = formatOpsCode(message.sender_id);
   const cipherText = useMemo(() => createCipherPreview(message.body, messageKey), [message.body, messageKey]);
   const visibilityMs = useMemo(() => revealDurationMs ?? estimateHumanReadTimeMs(message.body), [message.body, revealDurationMs]);
+  const shouldAutoReveal = useMemo(() => shouldRevealMessage(message.created_at), [message.created_at]);
   const [displayBody, setDisplayBody] = useState(cipherText);
-  const [phase, setPhase] = useState<CryptoPhase>(mine ? "encrypted" : processedMessageKeys.has(messageKey) ? "secured" : "decrypting");
+  const [phase, setPhase] = useState<CryptoPhase>(
+    mine ? "encrypted" : processedMessageKeys.has(messageKey) || !shouldAutoReveal ? "secured" : "decrypting"
+  );
   const [decryptProgress, setDecryptProgress] = useState(0);
   const [remainingSeconds, setRemainingSeconds] = useState(Math.ceil(visibilityMs / 1000));
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
@@ -45,7 +49,8 @@ export function MessageBubble({ message, mine, currentUserId, revealDurationMs, 
       return;
     }
 
-    if (processedMessageKeys.has(messageKey)) {
+    if (processedMessageKeys.has(messageKey) || !shouldAutoReveal) {
+      markMessageProcessed(messageKey);
       setDisplayBody(cipherText);
       setPhase("secured");
       setDecryptProgress(0);
@@ -104,7 +109,7 @@ export function MessageBubble({ message, mine, currentUserId, revealDurationMs, 
     return () => {
       for (const timer of timers) clearTimeout(timer);
     };
-  }, [cipherText, message.body, messageKey, mine, visibilityMs]);
+  }, [cipherText, message.body, messageKey, mine, shouldAutoReveal, visibilityMs]);
 
   useEffect(() => {
     let active = true;
@@ -254,6 +259,13 @@ function estimateHumanReadTimeMs(body: string) {
   const estimatedSeconds = Math.ceil(Math.max(secondsByWords, secondsByChars) + 1.5);
   const clampedSeconds = Math.min(90, Math.max(5, estimatedSeconds));
   return clampedSeconds * 1000;
+}
+
+function shouldRevealMessage(createdAt: string) {
+  const timestamp = new Date(createdAt).getTime();
+  if (!Number.isFinite(timestamp)) return false;
+  const age = Date.now() - timestamp;
+  return age >= 0 && age <= AUTO_REVEAL_MAX_AGE_MS;
 }
 
 function iconForKind(kind: Message["kind"]): keyof typeof Ionicons.glyphMap {

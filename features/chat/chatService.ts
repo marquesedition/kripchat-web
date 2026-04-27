@@ -187,7 +187,14 @@ export async function createDecryptedAttachmentUrl(path: string, conversationId:
 }
 
 export async function decryptMessageRecord(message: Message, currentUserId: string, peerPublicKey?: string | null): Promise<Message> {
-  const sharedKey = peerPublicKey ? await deriveConversationSharedKey(currentUserId, peerPublicKey, message.conversation_id) : null;
+  let sharedKey: Uint8Array | null = null;
+  if (peerPublicKey) {
+    try {
+      sharedKey = await deriveConversationSharedKey(currentUserId, peerPublicKey, message.conversation_id);
+    } catch {
+      sharedKey = null;
+    }
+  }
   return {
     ...message,
     body: decryptTextForConversation(message.body, message.conversation_id, sharedKey),
