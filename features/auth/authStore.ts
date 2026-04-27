@@ -1,6 +1,14 @@
 import type { Session } from "@supabase/supabase-js";
 import { create } from "zustand";
-import { fetchProfile, signInWithEmail, signOut as signOutService, signUpWithEmail, syncE2EEPublicKey, updateProfile } from "@/features/auth/authService";
+import {
+  fetchProfile,
+  signInWithEmail,
+  signOut as signOutService,
+  signUpWithEmail,
+  syncE2EEPublicKey,
+  updateProfile,
+  type SignUpResult
+} from "@/features/auth/authService";
 import type { Profile } from "@/features/chat/types";
 import { ensureE2EEIdentity } from "@/lib/e2ee";
 import { supabase } from "@/lib/supabase";
@@ -37,7 +45,7 @@ type AuthState = {
   initialized: boolean;
   bootstrap: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, username: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   saveProfile: (patch: Pick<Profile, "username" | "avatar_url" | "push_token">) => Promise<void>;
@@ -90,9 +98,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUp: async (email, password, username) => {
     set({ loading: true });
     try {
-      const session = await signUpWithEmail(email, password, username);
-      const profile = session?.user.id ? await loadPreparedProfile(session.user.id) : null;
-      set({ session, profile });
+      const result = await signUpWithEmail(email, password, username);
+      const profile = result.session?.user.id ? await loadPreparedProfile(result.session.user.id) : null;
+      set({ session: result.session, profile });
+      return result;
     } finally {
       set({ loading: false });
     }

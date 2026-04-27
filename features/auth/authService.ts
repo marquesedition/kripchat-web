@@ -3,6 +3,12 @@ import { supabase } from "@/lib/supabase";
 import { normalizeUsername } from "@/lib/validation";
 import type { Profile } from "@/features/chat/types";
 
+export type SignUpResult = {
+  session: Session | null;
+  emailConfirmationRequired: boolean;
+  email: string;
+};
+
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
   if (error) throw error;
@@ -11,8 +17,9 @@ export async function signInWithEmail(email: string, password: string) {
 
 export async function signUpWithEmail(email: string, password: string, username: string) {
   const cleanUsername = normalizeUsername(username);
+  const cleanEmail = email.trim().toLowerCase();
   const { data, error } = await supabase.auth.signUp({
-    email: email.trim(),
+    email: cleanEmail,
     password,
     options: {
       data: {
@@ -21,7 +28,11 @@ export async function signUpWithEmail(email: string, password: string, username:
     }
   });
   if (error) throw error;
-  return data.session;
+  return {
+    session: data.session,
+    emailConfirmationRequired: Boolean(data.user && !data.session),
+    email: data.user?.email ?? cleanEmail
+  } satisfies SignUpResult;
 }
 
 export async function signOut() {
@@ -65,4 +76,15 @@ export async function syncE2EEPublicKey(userId: string, publicKey: string) {
 
 export function getSessionUserId(session: Session | null) {
   return session?.user.id ?? null;
+}
+
+export function isEmailNotConfirmedError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const maybeMessage = "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  const maybeCode = "code" in error ? String((error as { code?: unknown }).code ?? "") : "";
+  const message = maybeMessage.toLowerCase();
+  const code = maybeCode.toLowerCase();
+
+  return code === "email_not_confirmed" || message.includes("email not confirmed");
 }

@@ -26,7 +26,15 @@ export default function RegisterScreen() {
       return;
     }
     try {
-      await signUp(email, password, normalizeUsername(username));
+      const result = await signUp(email, password, normalizeUsername(username));
+      if (result.emailConfirmationRequired) {
+        Alert.alert(
+          "Email confirmation required",
+          `We sent a confirmation link to ${result.email}. Confirm it before logging in.`
+        );
+        router.replace("/(auth)/login");
+        return;
+      }
       router.replace("/(tabs)");
     } catch (error) {
       Alert.alert("Registration failed", error instanceof Error ? error.message : "Unable to create account.");
@@ -67,6 +75,7 @@ export default function RegisterScreen() {
             style={styles.input}
           />
           <GlassButton label={loading ? "Provisioning..." : "Register"} disabled={loading} onPress={onSubmit} />
+          <Text style={styles.notice}>Email verification is required before you can start chatting.</Text>
           <Link href="/(auth)/login" asChild>
             <Pressable style={styles.linkButton}>
               <Text style={styles.linkText}>Already cleared? Log in</Text>
@@ -108,6 +117,11 @@ const styles = StyleSheet.create({
   linkButton: {
     alignItems: "center",
     paddingVertical: 8
+  },
+  notice: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18
   },
   linkText: {
     color: colors.blue,

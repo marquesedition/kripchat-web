@@ -244,13 +244,27 @@ export async function decryptMessageRecord(message: Message, currentUserId: stri
 }
 
 export async function createDirectConversation(currentUserId: string, username: string) {
+  const { data: authData } = await supabase.auth.getSession();
+  const sessionUser = authData.session?.user;
+  if (!sessionUser?.id) throw new Error("Sign in before opening a channel.");
+  if (!sessionUser.email_confirmed_at) throw new Error("Confirm your email before opening a channel.");
+
+  const normalizedUsername = username.trim().toLowerCase();
+  if (!normalizedUsername) throw new Error("Enter a valid username.");
+
   const { data: peer, error: peerError } = await supabase
     .from("profiles")
     .select("*")
-    .eq("username", username.trim().toLowerCase())
+    .eq("username", normalizedUsername)
     .neq("id", currentUserId)
     .maybeSingle();
-  if (peerError) throw peerError;
+  if (peerError) {
+    const rawMessage = `${peerError.message ?? ""} ${peerError.details ?? ""}`.toLowerCase();
+    if (peerError.code === "42501" || rawMessage.includes("row-level security") || rawMessage.includes("permission denied")) {
+      throw new Error("Supabase blocked profile lookup. Sign in with a confirmed account and try again.");
+    }
+    throw peerError;
+  }
   if (!peer) throw new Error("No profile found for that username");
 
   const { data, error } = await supabase.rpc("create_direct_conversation", {
