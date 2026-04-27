@@ -7,6 +7,34 @@ import type { ChatPreview, Conversation, Message, MessageKind, Profile } from "@
 
 const ATTACHMENT_BUCKET = "chat-attachments";
 
+type PreviewRpcRow = {
+  conversation_id: string;
+  conversation_type: Conversation["type"];
+  conversation_created_at: string;
+  conversation_updated_at: string;
+  peer_id: string;
+  peer_username: string;
+  peer_avatar_url: string | null;
+  peer_push_token: string | null;
+  peer_e2ee_public_key: string | null;
+  peer_online_at: string | null;
+  peer_created_at: string;
+  last_message_id: string | null;
+  last_message_sender_id: string | null;
+  last_message_body: string | null;
+  last_message_client_id: string | null;
+  last_message_status: Message["status"] | null;
+  last_message_kind: Message["kind"] | null;
+  last_message_attachment_path: string | null;
+  last_message_attachment_name: string | null;
+  last_message_attachment_mime: string | null;
+  last_message_attachment_size: number | null;
+  last_message_location_lat: number | null;
+  last_message_location_lng: number | null;
+  last_message_location_label: string | null;
+  last_message_created_at: string | null;
+};
+
 export type SendMessagePayload = {
   body: string;
   kind?: MessageKind;
@@ -29,90 +57,14 @@ export type UploadAttachmentInput = {
 
 export async function fetchChatPreviews(currentUserId: string): Promise<ChatPreview[]> {
   const { data, error } = await supabase.rpc("list_chat_previews");
-  if (error) throw error;
+  if (error) {
+    if (isMissingChatPreviewsRpc(error)) {
+      return fetchChatPreviewsFallback(currentUserId);
+    }
+    throw error;
+  }
 
-  const rows = (data ?? []) as Array<{
-    conversation_id: string;
-    conversation_type: Conversation["type"];
-    conversation_created_at: string;
-    conversation_updated_at: string;
-    peer_id: string;
-    peer_username: string;
-    peer_avatar_url: string | null;
-    peer_push_token: string | null;
-    peer_e2ee_public_key: string | null;
-    peer_online_at: string | null;
-    peer_created_at: string;
-    last_message_id: string | null;
-    last_message_sender_id: string | null;
-    last_message_body: string | null;
-    last_message_client_id: string | null;
-    last_message_status: Message["status"] | null;
-    last_message_kind: Message["kind"] | null;
-    last_message_attachment_path: string | null;
-    last_message_attachment_name: string | null;
-    last_message_attachment_mime: string | null;
-    last_message_attachment_size: number | null;
-    last_message_location_lat: number | null;
-    last_message_location_lng: number | null;
-    last_message_location_label: string | null;
-    last_message_created_at: string | null;
-  }>;
-
-  const previews = await Promise.all(
-    rows.map(async (row) => {
-      const conversation: Conversation = {
-        id: row.conversation_id,
-        type: row.conversation_type,
-        created_at: row.conversation_created_at,
-        updated_at: row.conversation_updated_at
-      };
-
-      const peer: Profile = {
-        id: row.peer_id,
-        username: row.peer_username,
-        avatar_url: row.peer_avatar_url,
-        push_token: row.peer_push_token,
-        e2ee_public_key: row.peer_e2ee_public_key,
-        online_at: row.peer_online_at,
-        created_at: row.peer_created_at
-      };
-
-      const lastMessage =
-        row.last_message_id && row.last_message_body && row.last_message_sender_id && row.last_message_status && row.last_message_kind && row.last_message_created_at
-          ? await decryptMessageRecord(
-              {
-                id: row.last_message_id,
-                conversation_id: row.conversation_id,
-                sender_id: row.last_message_sender_id,
-                body: row.last_message_body,
-                client_id: row.last_message_client_id,
-                status: row.last_message_status,
-                kind: row.last_message_kind,
-                attachment_path: row.last_message_attachment_path,
-                attachment_name: row.last_message_attachment_name,
-                attachment_mime: row.last_message_attachment_mime,
-                attachment_size: row.last_message_attachment_size,
-                location_lat: row.last_message_location_lat,
-                location_lng: row.last_message_location_lng,
-                location_label: row.last_message_location_label,
-                created_at: row.last_message_created_at
-              },
-              currentUserId,
-              peer.e2ee_public_key
-            )
-          : null;
-
-      return {
-        conversation,
-        peer,
-        peerOnline: isOnline(peer.online_at),
-        lastMessage
-      } satisfies ChatPreview;
-    })
-  );
-
-  return previews;
+  return mapPreviewsFromRpcRows((data ?? []) as PreviewRpcRow[], currentUserId);
 }
 
 export async function fetchMessages(conversationId: string, currentUserId: string, before?: string): Promise<Message[]> {
@@ -292,6 +244,100 @@ function fallbackBodyForKind(kind: MessageKind, name?: string | null) {
   return "";
 }
 
+async function mapPreviewsFromRpcRows(rows: PreviewRpcRow[], currentUserId: string) {
+  return Promise.all(
+    rows.map(async (row) => {
+      const conversation: Conversation = {
+        id: row.conversation_id,
+        type: row.conversation_type,
+        created_at: row.conversation_created_at,
+        updated_at: row.conversation_updated_at
+      };
+
+      const peer: Profile = {
+        id: row.peer_id,
+        username: row.peer_username,
+        avatar_url: row.peer_avatar_url,
+        push_token: row.peer_push_token,
+        e2ee_public_key: row.peer_e2ee_public_key,
+        online_at: row.peer_online_at,
+        created_at: row.peer_created_at
+      };
+
+      const lastMessage =
+        row.last_message_id && row.last_message_body && row.last_message_sender_id && row.last_message_status && row.last_message_kind && row.last_message_created_at
+          ? await decryptMessageRecord(
+              {
+                id: row.last_message_id,
+                conversation_id: row.conversation_id,
+                sender_id: row.last_message_sender_id,
+                body: row.last_message_body,
+                client_id: row.last_message_client_id,
+                status: row.last_message_status,
+                kind: row.last_message_kind,
+                attachment_path: row.last_message_attachment_path,
+                attachment_name: row.last_message_attachment_name,
+                attachment_mime: row.last_message_attachment_mime,
+                attachment_size: row.last_message_attachment_size,
+                location_lat: row.last_message_location_lat,
+                location_lng: row.last_message_location_lng,
+                location_label: row.last_message_location_label,
+                created_at: row.last_message_created_at
+              },
+              currentUserId,
+              peer.e2ee_public_key
+            )
+          : null;
+
+      return {
+        conversation,
+        peer,
+        peerOnline: isOnline(peer.online_at),
+        lastMessage
+      } satisfies ChatPreview;
+    })
+  );
+}
+
+async function fetchChatPreviewsFallback(currentUserId: string): Promise<ChatPreview[]> {
+  const { data, error } = await supabase
+    .from("conversation_participants")
+    .select("conversation_id, conversation:conversations(id,type,created_at,updated_at)")
+    .eq("profile_id", currentUserId);
+  if (error) throw error;
+
+  const conversations = ((data ?? []) as Array<{ conversation: Conversation | Conversation[] | null }>)
+    .map((row) => (Array.isArray(row.conversation) ? row.conversation[0] : row.conversation))
+    .filter((conversation): conversation is Conversation => Boolean(conversation))
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
+  return Promise.all(
+    conversations.map(async (conversation) => {
+      const peer = await fetchConversationPeer(conversation.id, currentUserId);
+      const lastMessage = await fetchLastMessageForConversation(conversation.id, currentUserId, peer?.e2ee_public_key ?? null);
+      return {
+        conversation,
+        peer,
+        peerOnline: isOnline(peer?.online_at),
+        lastMessage
+      } satisfies ChatPreview;
+    })
+  );
+}
+
+async function fetchLastMessageForConversation(conversationId: string, currentUserId: string, peerPublicKey?: string | null) {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return decryptMessageRecord(data as Message, currentUserId, peerPublicKey);
+}
+
 async function fetchConversationPeer(conversationId: string, currentUserId: string) {
   const { data, error } = await supabase
     .from("conversation_participants")
@@ -312,6 +358,19 @@ function findPeerProfile(
     return profile?.id !== currentUserId;
   });
   return (Array.isArray(peerRecord?.profile) ? peerRecord?.profile[0] : peerRecord?.profile ?? null) as Profile | null;
+}
+
+function isMissingChatPreviewsRpc(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const maybeError = error as { code?: unknown; message?: unknown; details?: unknown; status?: unknown };
+  const code = String(maybeError.code ?? "").toLowerCase();
+  const status = Number(maybeError.status ?? 0);
+  const message = String(maybeError.message ?? "").toLowerCase();
+  const details = String(maybeError.details ?? "").toLowerCase();
+  const text = `${message} ${details}`;
+
+  return code === "pgrst202" || status === 404 || text.includes("could not find the function") || text.includes("not found");
 }
 
 async function requireConversationSharedKey(conversationId: string, currentUserId: string) {
