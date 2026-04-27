@@ -238,10 +238,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 8,
-    marginBottom: spacing.md
+    marginBottom: spacing.lg
   },
   fieldGroup: {
-    gap: 7
+    gap: 10
   },
   label: {
     color: colors.faint,
@@ -250,21 +250,22 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   input: {
-    height: 48,
+    minHeight: 50,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: "rgba(216, 232, 198, 0.045)",
     color: colors.text,
     fontFamily: fonts.mono,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 15
   },
   modalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 12,
-    marginTop: spacing.md
+    gap: 10,
+    marginTop: spacing.lg
   },
   cancelButton: {
     flex: 1,

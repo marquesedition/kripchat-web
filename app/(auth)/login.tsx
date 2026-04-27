@@ -41,40 +41,44 @@ export default function LoginScreen() {
   return (
     <ScreenShell>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.wrap}>
-        <View style={styles.header}>
-          <Text style={styles.kicker}>KRIPCHAT</Text>
-          <Text style={styles.title}>Secure comms for fast teams.</Text>
-          <Text style={styles.subtitle}>Private 1:1 realtime chat with a glass-dark command center feel.</Text>
-        </View>
+        <View style={styles.panel}>
+          <View style={styles.header}>
+            <Text style={styles.kicker}>KRIPCHAT</Text>
+            <Text style={styles.title}>Secure comms for fast teams.</Text>
+            <Text style={styles.subtitle}>Private 1:1 realtime chat with a glass-dark command center feel.</Text>
+          </View>
 
-        <GlassCard style={styles.card}>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            placeholder="operator@email.com"
-            placeholderTextColor={colors.faint}
-            value={email}
-            onChangeText={setEmail}
-            style={styles.input}
-          />
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="password"
-            placeholder="password"
-            placeholderTextColor={colors.faint}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            style={styles.input}
-          />
-          <GlassButton label={loading ? "Authenticating..." : "Enter"} disabled={loading} onPress={onSubmit} />
-          <Link href="/(auth)/register" asChild>
-            <Pressable style={styles.linkButton}>
-              <Text style={styles.linkText}>Need a handle? Register</Text>
-            </Pressable>
-          </Link>
-        </GlassCard>
+          <GlassCard style={styles.card}>
+            <View style={styles.inputStack}>
+              <TextInput
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                placeholder="operator@email.com"
+                placeholderTextColor={colors.faint}
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+              />
+              <TextInput
+                autoCapitalize="none"
+                autoComplete="password"
+                placeholder="password"
+                placeholderTextColor={colors.faint}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+              />
+            </View>
+            <GlassButton label={loading ? "Authenticating..." : "Enter"} disabled={loading} onPress={onSubmit} />
+            <Link href="/(auth)/register" asChild>
+              <Pressable style={styles.linkButton}>
+                <Text style={styles.linkText}>Need a handle? Register</Text>
+              </Pressable>
+            </Link>
+          </GlassCard>
+        </View>
       </KeyboardAvoidingView>
     </ScreenShell>
   );
@@ -84,7 +88,13 @@ const styles = StyleSheet.create({
   wrap: {
     flex: 1,
     justifyContent: "center",
-    padding: spacing.lg
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md
+  },
+  panel: {
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center"
   },
   header: {
     marginBottom: spacing.lg
@@ -108,22 +118,27 @@ const styles = StyleSheet.create({
     lineHeight: 22
   },
   card: {
-    padding: spacing.md,
-    gap: 12
+    padding: spacing.lg,
+    gap: 14
+  },
+  inputStack: {
+    gap: 10
   },
   input: {
-    height: 52,
+    minHeight: 54,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: "rgba(255,255,255,0.06)",
     color: colors.text,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16
   },
   linkButton: {
     alignItems: "center",
-    paddingVertical: 8
+    paddingVertical: 8,
+    marginTop: 4
   },
   linkText: {
     color: colors.blue,

@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: spacing.lg,
-    gap: spacing.md
+    gap: spacing.lg
   },
   identityBlock: {
     flexDirection: "row",
@@ -167,10 +167,10 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   form: {
-    gap: 12
+    gap: 16
   },
   fieldGroup: {
-    gap: 7
+    gap: 10
   },
   label: {
     color: colors.faint,
@@ -179,14 +179,15 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   input: {
-    height: 48,
+    minHeight: 50,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: "rgba(216, 232, 198, 0.045)",
     color: colors.text,
     fontFamily: fonts.mono,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 15
   },
   actions: {

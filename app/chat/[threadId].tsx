@@ -517,10 +517,10 @@ const styles = StyleSheet.create({
   composer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 10,
+    gap: 12,
     paddingHorizontal: spacing.md,
     paddingTop: 12,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border
   },
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 50,
     maxHeight: 120,
     borderRadius: radii.lg,
     borderWidth: StyleSheet.hairlineWidth,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.07)",
     color: colors.text,
     fontFamily: fonts.mono,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16
   },
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     backgroundColor: "rgba(8, 18, 19, 0.98)",
     padding: spacing.md,
-    gap: 6
+    gap: 10
   },
   toolGrid: {
     flexDirection: "row",
@@ -597,14 +597,15 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   locationInput: {
-    minHeight: 48,
+    minHeight: 50,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: "rgba(216, 232, 198, 0.045)",
     color: colors.text,
     fontFamily: fonts.mono,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 14
   },
   sheetHandle: {

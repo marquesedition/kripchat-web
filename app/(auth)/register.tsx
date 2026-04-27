@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Link, router } from "expo-router";
 import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
@@ -45,44 +45,48 @@ export default function RegisterScreen() {
   return (
     <ScreenShell>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.wrap}>
-        <Text style={styles.title}>Create your secure handle.</Text>
-        <GlassCard style={styles.card}>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            placeholder="operator@email.com"
-            placeholderTextColor={colors.faint}
-            value={email}
-            onChangeText={setEmail}
-            style={styles.input}
-          />
-          <TextInput
-            autoCapitalize="none"
-            placeholder="hacker_handle"
-            placeholderTextColor={colors.faint}
-            value={username}
-            onChangeText={(value) => setUsername(normalizeUsername(value))}
-            style={styles.input}
-          />
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="new-password"
-            placeholder="password"
-            placeholderTextColor={colors.faint}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            style={styles.input}
-          />
-          <GlassButton label={loading ? "Provisioning..." : "Register"} disabled={loading} onPress={onSubmit} />
-          <Text style={styles.notice}>Email verification is required before you can start chatting.</Text>
-          <Link href="/(auth)/login" asChild>
-            <Pressable style={styles.linkButton}>
-              <Text style={styles.linkText}>Already cleared? Log in</Text>
-            </Pressable>
-          </Link>
-        </GlassCard>
+        <View style={styles.panel}>
+          <Text style={styles.title}>Create your secure handle.</Text>
+          <GlassCard style={styles.card}>
+            <View style={styles.inputStack}>
+              <TextInput
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                placeholder="operator@email.com"
+                placeholderTextColor={colors.faint}
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+              />
+              <TextInput
+                autoCapitalize="none"
+                placeholder="hacker_handle"
+                placeholderTextColor={colors.faint}
+                value={username}
+                onChangeText={(value) => setUsername(normalizeUsername(value))}
+                style={styles.input}
+              />
+              <TextInput
+                autoCapitalize="none"
+                autoComplete="new-password"
+                placeholder="password"
+                placeholderTextColor={colors.faint}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+              />
+            </View>
+            <GlassButton label={loading ? "Provisioning..." : "Register"} disabled={loading} onPress={onSubmit} />
+            <Text style={styles.notice}>Email verification is required before you can start chatting.</Text>
+            <Link href="/(auth)/login" asChild>
+              <Pressable style={styles.linkButton}>
+                <Text style={styles.linkText}>Already cleared? Log in</Text>
+              </Pressable>
+            </Link>
+          </GlassCard>
+        </View>
       </KeyboardAvoidingView>
     </ScreenShell>
   );
@@ -92,7 +96,13 @@ const styles = StyleSheet.create({
   wrap: {
     flex: 1,
     justifyContent: "center",
-    padding: spacing.lg
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md
+  },
+  panel: {
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center"
   },
   title: {
     color: colors.text,
@@ -102,22 +112,27 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg
   },
   card: {
-    padding: spacing.md,
-    gap: 12
+    padding: spacing.lg,
+    gap: 14
+  },
+  inputStack: {
+    gap: 10
   },
   input: {
-    height: 52,
+    minHeight: 54,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: "rgba(255,255,255,0.06)",
     color: colors.text,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16
   },
   linkButton: {
     alignItems: "center",
-    paddingVertical: 8
+    paddingVertical: 8,
+    marginTop: 4
   },
   notice: {
     color: colors.muted,
