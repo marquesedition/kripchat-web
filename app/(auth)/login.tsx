@@ -5,6 +5,7 @@ import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { isEmailNotConfirmedError } from "@/features/auth/authService";
+import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { useAuthStore } from "@/features/auth/authStore";
 import { colors, radii, spacing } from "@/lib/theme";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -33,7 +34,7 @@ export default function LoginScreen() {
         Alert.alert("Email confirmation required", "Confirm your email from the link in your inbox, then sign in.");
         return;
       }
-      Alert.alert("Access denied", error instanceof Error ? error.message : "Unable to sign in.");
+      Alert.alert("Access denied", getUserFacingErrorMessage(error, "Unable to sign in."));
     }
   }
 

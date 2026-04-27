@@ -8,6 +8,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/features/auth/authStore";
 import { useChatStore } from "@/features/chat/chatStore";
+import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { normalizeUsername } from "@/lib/validation";
 
@@ -23,7 +24,9 @@ export default function ChatListScreen() {
   const syncStatus = previews.some((item) => item.peerOnline) ? "Presence synced" : "Waiting for live presence";
 
   const refresh = useCallback(() => {
-    if (userId) loadPreviews(userId).catch((error) => Alert.alert("Sync failed", error.message));
+    if (userId) {
+      loadPreviews(userId).catch((error) => Alert.alert("Sync failed", getUserFacingErrorMessage(error, "Unable to sync channels.")));
+    }
   }, [loadPreviews, userId]);
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export default function ChatListScreen() {
       setUsername("");
       router.push(`/chat/${conversationId}`);
     } catch (error) {
-      Alert.alert("Could not open channel", error instanceof Error ? error.message : "Try another username.");
+      Alert.alert("Could not open channel", getUserFacingErrorMessage(error, "Try another username."));
     }
   }
 

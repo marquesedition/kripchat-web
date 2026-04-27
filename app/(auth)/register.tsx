@@ -5,6 +5,7 @@ import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/features/auth/authStore";
+import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, radii, spacing } from "@/lib/theme";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { isValidEmail, isValidPassword, isValidUsername, normalizeUsername } from "@/lib/validation";
@@ -37,7 +38,7 @@ export default function RegisterScreen() {
       }
       router.replace("/(tabs)");
     } catch (error) {
-      Alert.alert("Registration failed", error instanceof Error ? error.message : "Unable to create account.");
+      Alert.alert("Registration failed", getUserFacingErrorMessage(error, "Unable to create account."));
     }
   }
 

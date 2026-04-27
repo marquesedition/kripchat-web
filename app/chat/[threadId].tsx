@@ -15,6 +15,7 @@ import type { Message, MessageKind } from "@/features/chat/types";
 import { useTypingChannel } from "@/hooks/useTypingChannel";
 import { formatOpsCode, formatShortId } from "@/lib/opsIdentity";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
+import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { sanitizeMessage } from "@/lib/validation";
 
 const EMPTY_MESSAGES: Message[] = [];
@@ -67,7 +68,9 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (!conversationId || !userId) return undefined;
-    loadMessages(conversationId, userId).catch((error) => Alert.alert("Load failed", error.message));
+    loadMessages(conversationId, userId).catch((error) =>
+      Alert.alert("Load failed", getUserFacingErrorMessage(error, "No se pudo cargar este canal."))
+    );
     subscribeToConversation(conversationId, userId);
     return unsubscribeActive;
   }, [conversationId, loadMessages, subscribeToConversation, unsubscribeActive, userId]);
@@ -93,7 +96,7 @@ export default function ChatScreen() {
       if (!conversationId) return;
       await send(conversationId, userId, clean);
     } catch (error) {
-      Alert.alert("Send failed", error instanceof Error ? error.message : "Message was not delivered.");
+      Alert.alert("Send failed", getUserFacingErrorMessage(error, "El mensaje no se pudo entregar."));
     }
   }
 
@@ -161,42 +164,50 @@ export default function ChatScreen() {
         attachmentSize: uploaded.size
       });
     } catch (error) {
-      Alert.alert("Attachment failed", error instanceof Error ? error.message : "Could not send this file.");
+      Alert.alert("Attachment failed", getUserFacingErrorMessage(error, "No se pudo enviar este archivo."));
     }
   }
 
   async function sendCurrentLocation() {
     if (!conversationId || !userId) return;
-    setToolsOpen(false);
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Location blocked", "Enable location permission to send your current position.");
-      return;
+    try {
+      setToolsOpen(false);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Location blocked", "Enable location permission to send your current position.");
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      await send(conversationId, userId, {
+        body: "[location] current position",
+        kind: "location",
+        locationLat: position.coords.latitude,
+        locationLng: position.coords.longitude,
+        locationLabel: "Current position"
+      });
+    } catch (error) {
+      Alert.alert("Location failed", getUserFacingErrorMessage(error, "No se pudo enviar la ubicación actual."));
     }
-    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    await send(conversationId, userId, {
-      body: "[location] current position",
-      kind: "location",
-      locationLat: position.coords.latitude,
-      locationLng: position.coords.longitude,
-      locationLabel: "Current position"
-    });
   }
 
   async function sendDesiredLocation() {
     if (!conversationId || !userId) return;
     const clean = desiredLocation.trim();
     if (!clean) return;
-    setDesiredLocation("");
-    setDesiredLocationOpen(false);
-    setToolsOpen(false);
-    await send(conversationId, userId, {
-      body: `[location] ${clean}`,
-      kind: "location",
-      locationLat: null,
-      locationLng: null,
-      locationLabel: clean
-    });
+    try {
+      setDesiredLocation("");
+      setDesiredLocationOpen(false);
+      setToolsOpen(false);
+      await send(conversationId, userId, {
+        body: `[location] ${clean}`,
+        kind: "location",
+        locationLat: null,
+        locationLng: null,
+        locationLabel: clean
+      });
+    } catch (error) {
+      Alert.alert("Location failed", getUserFacingErrorMessage(error, "No se pudo enviar la ubicación deseada."));
+    }
   }
 
   async function copyText(value: string, label: string) {
@@ -240,7 +251,7 @@ export default function ChatScreen() {
       await loadMessages(conversationId, userId);
       Alert.alert("Channel synced", "Latest encrypted packets loaded.");
     } catch (error) {
-      Alert.alert("Sync failed", error instanceof Error ? error.message : "Could not reload this channel.");
+      Alert.alert("Sync failed", getUserFacingErrorMessage(error, "No se pudo recargar este canal."));
     }
   }
 
@@ -275,7 +286,11 @@ export default function ChatScreen() {
           )}
           contentContainerStyle={styles.messages}
           onStartReached={() => {
-            if (conversationId && userId) loadOlderMessages(conversationId, userId).catch(() => undefined);
+            if (conversationId && userId) {
+              loadOlderMessages(conversationId, userId).catch((error) =>
+                Alert.alert("Load failed", getUserFacingErrorMessage(error, "No se pudieron cargar mensajes anteriores."))
+              );
+            }
           }}
           onStartReachedThreshold={0.25}
           ListEmptyComponent={<Text style={styles.empty}>No packets received. Establish secure contact.</Text>}

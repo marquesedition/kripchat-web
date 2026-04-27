@@ -5,6 +5,7 @@ import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/features/auth/authStore";
+import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { normalizeUsername } from "@/lib/validation";
 import { registerForPushNotifications } from "@/services/notifications";
@@ -33,7 +34,7 @@ export default function ProfileScreen() {
       });
       Alert.alert("Profile secured", "Your identity card is updated.");
     } catch (error) {
-      Alert.alert("Update failed", error instanceof Error ? error.message : "Unable to update profile.");
+      Alert.alert("Update failed", getUserFacingErrorMessage(error, "Unable to update profile."));
     }
   }
 
