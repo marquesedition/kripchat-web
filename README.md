@@ -15,15 +15,21 @@ KripChat is a secure, real-time mobile chat for hackers and security teams. It i
 
 ## Testing And QA
 
-This project now includes automated testing foundations for both logic and web QA:
+This project now includes automated testing foundations with **unit tests as the primary flow**:
 
 - `npm run test:unit` runs Jest unit tests for core helpers and stable business logic.
 - `npm run test:unit:coverage` runs the same suite with coverage output.
+- `npm run test:unit:report` runs unit tests and generates an HTML report.
+- `npm run test:unit:report:open` runs unit tests and opens the HTML report.
+- `npm run test` runs unit tests (default).
+- `npm run test:all` runs unit tests plus web QA.
+
+Web QA remains available as optional:
+
 - `npm run test:qa` exports the web build, serves it locally, and runs Playwright smoke tests against public routes.
 - `npm run test:qa:headed` runs the same QA flow with a visible browser.
 - `npm run qa:report:open` opens the latest Playwright HTML report in your browser.
 - `npm run test:qa:report` runs QA and opens the report immediately.
-- `npm run test` runs unit tests plus QA end-to-end checks.
 
 Current automated coverage focuses on:
 
@@ -35,7 +41,17 @@ Current automated coverage focuses on:
 - direct conversation guardrails (missing session, unconfirmed email, RLS failure mapping)
 - login/register/protected-route web QA smoke flows
 
-### QA Report (Allure-like local dashboard)
+### Unit Report (Allure-like local dashboard)
+
+For unit tests, use the generated HTML dashboard:
+
+```bash
+npm run test:unit:report:open
+```
+
+This opens `jest_html_reporters.html` with test status and details.
+
+### Web QA Report (Optional)
 
 Playwright's HTML report gives a visual test dashboard similar to Allure for local use, including per-test steps, traces, screenshots on failure, and filtering by project.
 
