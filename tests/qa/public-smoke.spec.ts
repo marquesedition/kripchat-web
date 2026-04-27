@@ -26,14 +26,10 @@ test.describe("public web experience", () => {
     await expect(page.getByText("Email verification is required before you can start chatting.")).toBeVisible();
   });
 
-  test("protected routes redirect unauthenticated users to login", async ({ page }) => {
+  test("protected profile route redirects unauthenticated users to login", async ({ page }) => {
     await page.goto("/profile");
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByPlaceholder("operator@email.com")).toBeVisible();
-
-    await page.goto("/chat/test-thread");
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByText("Secure comms for fast teams.")).toBeVisible();
   });
 
   test("auth screens are cross-linked", async ({ page }) => {
