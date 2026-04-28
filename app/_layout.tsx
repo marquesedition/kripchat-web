@@ -1,14 +1,21 @@
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useSegments } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "@/features/auth/authStore";
+import { usePresence } from "@/hooks/usePresence";
 import { colors } from "@/lib/theme";
 
 export default function RootLayout() {
   const bootstrap = useAuthStore((state) => state.bootstrap);
   const initialized = useAuthStore((state) => state.initialized);
+  const userId = useAuthStore((state) => state.session?.user.id);
+  const segments = useSegments();
+  const inChat = segments[0] === "chat" && Boolean(segments[1]);
+  const inInbox = segments[0] === "(tabs)" && segments.length === 1;
+
+  usePresence(userId, inChat || inInbox);
 
   useEffect(() => {
     bootstrap().catch(() => undefined);
