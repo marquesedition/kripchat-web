@@ -12,6 +12,7 @@ import { sanitizeMessage } from "@/lib/validation";
 import type { ChatPreview, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
 
 const ATTACHMENT_BUCKET = "chat-attachments";
+const SIGNED_URL_TTL_SECONDS = 60;
 const peerPublicKeyCache = new Map<string, string | null>();
 
 type PreviewRpcRow = {
@@ -21,6 +22,9 @@ type PreviewRpcRow = {
   conversation_updated_at: string;
   conversation_auto_destroy_seconds: number | null;
   conversation_auto_destroy_at: string | null;
+  conversation_high_risk_enabled: boolean | null;
+  conversation_crypto_epoch: number | null;
+  conversation_crypto_destroyed_at: string | null;
   peer_id: string;
   peer_username: string;
   peer_avatar_url: string | null;
@@ -170,6 +174,10 @@ export async function uploadChatAttachment(input: UploadAttachmentInput) {
     });
 
   if (error) throw error;
+  await logSecurityEvent(input.senderId, input.conversationId, "attachment_uploaded", {
+    mimeType: input.mimeType,
+    size: blob.size
+  });
 
   return {
     path: data.path,
@@ -180,15 +188,28 @@ export async function uploadChatAttachment(input: UploadAttachmentInput) {
 }
 
 export async function destroyConversation(conversationId: string) {
+  await logSecurityEvent(null, conversationId, "destroy_conversation_requested", {});
   await removeConversationAttachments(conversationId);
   const { error } = await supabase.from("conversations").delete().eq("id", conversationId);
   if (error) throw error;
+  peerPublicKeyCache.forEach((_value, key) => {
+    if (key.endsWith(`:${conversationId}`)) peerPublicKeyCache.delete(key);
+  });
 }
 
 export async function setConversationAutoDestroy(conversationId: string, seconds: number | null) {
   const { error } = await supabase.rpc("set_conversation_auto_destroy", {
     p_conversation_id: conversationId,
     p_seconds: seconds
+  });
+  if (error) throw error;
+  await logSecurityEvent(null, conversationId, "auto_destroy_set", { seconds });
+}
+
+export async function setConversationHighRisk(conversationId: string, enabled: boolean) {
+  const { error } = await supabase.rpc("set_conversation_high_risk", {
+    p_conversation_id: conversationId,
+    p_enabled: enabled
   });
   if (error) throw error;
 }
@@ -220,12 +241,13 @@ export async function destroyExpiredConversations() {
 }
 
 export async function createAttachmentSignedUrl(path: string) {
-  const { data, error } = await supabase.storage.from(ATTACHMENT_BUCKET).createSignedUrl(path, 60 * 60);
+  const { data, error } = await supabase.storage.from(ATTACHMENT_BUCKET).createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
   if (error) throw error;
   return data.signedUrl;
 }
 
 export async function createDecryptedAttachmentUrl(path: string, conversationId: string, currentUserId: string, mimeType: string) {
+  await logSecurityEvent(currentUserId, conversationId, "attachment_opened", { mimeType });
   const signedUrl = await createAttachmentSignedUrl(path);
   const response = await fetch(signedUrl);
   if (!response.ok) throw new Error("Unable to download encrypted payload");
@@ -347,7 +369,10 @@ async function mapPreviewsFromRpcRows(rows: PreviewRpcRow[], currentUserId: stri
         created_at: row.conversation_created_at,
         updated_at: row.conversation_updated_at,
         auto_destroy_seconds: row.conversation_auto_destroy_seconds ?? null,
-        auto_destroy_at: row.conversation_auto_destroy_at ?? null
+        auto_destroy_at: row.conversation_auto_destroy_at ?? null,
+        high_risk_enabled: row.conversation_high_risk_enabled ?? false,
+        crypto_epoch: row.conversation_crypto_epoch ?? 1,
+        crypto_destroyed_at: row.conversation_crypto_destroyed_at ?? null
       };
 
       const peer: Profile = {
@@ -551,5 +576,17 @@ function blobToDataUri(blob: Blob) {
     reader.onerror = () => reject(new Error("Unable to open secure payload"));
     reader.onload = () => resolve(String(reader.result ?? ""));
     reader.readAsDataURL(blob);
+  });
+}
+
+async function logSecurityEvent(actorId: string | null, conversationId: string, eventType: string, metadata: Record<string, unknown>) {
+  const resolvedActorId = actorId ?? (await supabase.auth.getSession()).data.session?.user.id;
+  if (!resolvedActorId) return;
+
+  await supabase.from("security_audit_events").insert({
+    actor_id: resolvedActorId,
+    conversation_id: conversationId,
+    event_type: eventType,
+    metadata
   });
 }

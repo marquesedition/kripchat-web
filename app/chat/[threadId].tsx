@@ -5,6 +5,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import * as ScreenCapture from "expo-screen-capture";
 import { Ionicons } from "@expo/vector-icons";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ScreenShell } from "@/components/ScreenShell";
@@ -45,6 +46,7 @@ export default function ChatScreen() {
   const send = useChatStore((state) => state.send);
   const destroy = useChatStore((state) => state.destroy);
   const setAutoDestroy = useChatStore((state) => state.setAutoDestroy);
+  const setHighRisk = useChatStore((state) => state.setHighRisk);
   const subscribeToConversation = useChatStore((state) => state.subscribeToConversation);
   const unsubscribeActive = useChatStore((state) => state.unsubscribeActive);
   const [draft, setDraft] = useState("");
@@ -66,6 +68,7 @@ export default function ChatScreen() {
   const presenceStatus = peer?.online_at ? "PRESENCE SYNCED" : "PRESENCE STANDBY";
   const activeAutoDestroySeconds = peerPreview?.conversation.auto_destroy_seconds ?? null;
   const autoDestroyLabel = formatAutoDestroyLabel(activeAutoDestroySeconds, peerPreview?.conversation.auto_destroy_at);
+  const highRiskEnabled = Boolean(peerPreview?.conversation.high_risk_enabled);
 
   function goBack() {
     if (router.canGoBack()) {
@@ -88,6 +91,24 @@ export default function ChatScreen() {
   useEffect(() => {
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   }, [visibleMessages.length]);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return undefined;
+
+    const screenCaptureKey = conversationId ? `high-risk:${conversationId}` : "high-risk";
+    if (highRiskEnabled) {
+      ScreenCapture.preventScreenCaptureAsync(screenCaptureKey).catch(() => undefined);
+      ScreenCapture.enableAppSwitcherProtectionAsync(0.9).catch(() => undefined);
+    } else {
+      ScreenCapture.allowScreenCaptureAsync(screenCaptureKey).catch(() => undefined);
+      ScreenCapture.disableAppSwitcherProtectionAsync().catch(() => undefined);
+    }
+
+    return () => {
+      ScreenCapture.allowScreenCaptureAsync(screenCaptureKey).catch(() => undefined);
+      ScreenCapture.disableAppSwitcherProtectionAsync().catch(() => undefined);
+    };
+  }, [conversationId, highRiskEnabled]);
 
   if (!userId) {
     return <Redirect href="/(auth)/login" />;
@@ -118,6 +139,10 @@ export default function ChatScreen() {
   }
 
   async function pasteFromClipboard() {
+    if (highRiskEnabled) {
+      Alert.alert("Modo alto riesgo", "El portapapeles esta bloqueado en este chat.");
+      return;
+    }
     const value = await Clipboard.getStringAsync();
     if (!value.trim()) return;
     setDraft((current) => (current ? `${current}${value}` : value));
@@ -156,6 +181,10 @@ export default function ChatScreen() {
 
   async function sendAttachment(input: { uri: string; name: string; mimeType: string; kind: MessageKind }) {
     if (!conversationId || !userId) return;
+    if (highRiskEnabled) {
+      Alert.alert("Modo alto riesgo", "Los adjuntos estan bloqueados en este chat.");
+      return;
+    }
     setToolsOpen(false);
     try {
       const uploaded = await uploadChatAttachment({
@@ -272,6 +301,25 @@ export default function ChatScreen() {
     }
   }
 
+  async function updateHighRisk(enabled: boolean) {
+    if (!conversationId || !userId) return;
+    try {
+      await setHighRisk(conversationId, userId, enabled);
+      if (enabled) {
+        setViewWindowMode("manual");
+        setVisibilitySeconds(5);
+      }
+      Alert.alert(
+        "Modo alto riesgo",
+        enabled
+          ? "Activado: captura de pantalla, portapapeles y adjuntos quedan restringidos."
+          : "Desactivado: se restauran controles normales del chat."
+      );
+    } catch (error) {
+      Alert.alert("No se pudo actualizar", getUserFacingErrorMessage(error, "No se pudo cambiar el modo alto riesgo."));
+    }
+  }
+
   function confirmDestroyConversation() {
     Alert.alert(
       "Destruir conversacion",
@@ -325,7 +373,9 @@ export default function ChatScreen() {
               mine={item.sender_id === userId}
               currentUserId={userId ?? null}
               revealDurationMs={viewWindowMode === "manual" ? visibilitySeconds * 1000 : undefined}
-              onLongPress={(message) => setSelectedPacket({ message })}
+              onLongPress={(message) => {
+                if (!highRiskEnabled) setSelectedPacket({ message });
+              }}
             />
           )}
           contentContainerStyle={styles.messages}
@@ -341,11 +391,22 @@ export default function ChatScreen() {
         />
 
         <View style={styles.composer}>
-          <Pressable accessibilityLabel="Open attachments" accessibilityRole="button" onPress={() => setToolsOpen(true)} style={styles.utilityButton}>
-            <Ionicons name="add" color={colors.green} size={22} />
+          <Pressable
+            accessibilityLabel="Open attachments"
+            accessibilityRole="button"
+            onPress={() => {
+              if (highRiskEnabled) {
+                Alert.alert("Modo alto riesgo", "Los adjuntos estan bloqueados en este chat.");
+                return;
+              }
+              setToolsOpen(true);
+            }}
+            style={styles.utilityButton}
+          >
+            <Ionicons name="add" color={highRiskEnabled ? colors.faint : colors.green} size={22} />
           </Pressable>
           <Pressable accessibilityLabel="Paste clipboard" accessibilityRole="button" onPress={pasteFromClipboard} style={styles.utilityButton}>
-            <Ionicons name="clipboard-outline" color={colors.green} size={19} />
+            <Ionicons name="clipboard-outline" color={highRiskEnabled ? colors.faint : colors.green} size={19} />
           </Pressable>
           <TextInput
             multiline
@@ -445,7 +506,25 @@ export default function ChatScreen() {
                 <InfoCell label="PAYLOAD" value="CLIENT ENCRYPTED" />
                 <InfoCell label="VIEW WINDOW" value={viewWindowMode === "auto" ? "AUTO READ" : `${visibilitySeconds}s MANUAL`} />
                 <InfoCell label="AUTODESTRUCCION" value={autoDestroyLabel} />
+                <InfoCell label="HIGH RISK" value={highRiskEnabled ? "ON" : "OFF"} />
                 <InfoCell label="KEY MODEL" value="DEVICE-HELD KEYPAIR" />
+              </View>
+              <Text style={styles.optionTitle}>MODO ALTO RIESGO</Text>
+              <View style={styles.modeRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => updateHighRisk(false)}
+                  style={[styles.modeButton, !highRiskEnabled && styles.modeButtonActive]}
+                >
+                  <Text style={[styles.modeText, !highRiskEnabled && styles.modeTextActive]}>OFF</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => updateHighRisk(true)}
+                  style={[styles.modeButton, highRiskEnabled && styles.modeButtonDanger]}
+                >
+                  <Text style={[styles.modeText, highRiskEnabled && styles.modeTextDanger]}>ON</Text>
+                </Pressable>
               </View>
               <Text style={styles.optionTitle}>AUTODESTRUCCION DEL CHAT</Text>
               <View style={styles.segmentRow}>
@@ -495,7 +574,7 @@ export default function ChatScreen() {
                   </Pressable>
                 ))}
               </View>
-              <ActionRow icon="copy-outline" label="Copy channel id" onPress={() => conversationId && copyText(conversationId, "Channel id")} />
+              {!highRiskEnabled ? <ActionRow icon="copy-outline" label="Copy channel id" onPress={() => conversationId && copyText(conversationId, "Channel id")} /> : null}
               <ActionRow icon="sync-outline" label="Reload encrypted packets" onPress={reloadThread} />
               <ActionRow danger icon="trash-outline" label="Destruir conversacion para todos" onPress={confirmDestroyConversation} />
               <ActionRow icon="exit-outline" label="Close channel" onPress={goBack} />
@@ -801,6 +880,10 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     backgroundColor: "rgba(120, 213, 188, 0.22)"
   },
+  modeButtonDanger: {
+    borderColor: "rgba(255, 71, 87, 0.55)",
+    backgroundColor: "rgba(255, 71, 87, 0.18)"
+  },
   modeText: {
     color: colors.muted,
     fontFamily: fonts.mono,
@@ -809,6 +892,9 @@ const styles = StyleSheet.create({
   },
   modeTextActive: {
     color: colors.text
+  },
+  modeTextDanger: {
+    color: colors.danger
   },
   segmentRow: {
     flexDirection: "row",

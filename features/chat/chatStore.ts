@@ -8,6 +8,7 @@ import {
   fetchMessages,
   sendMessage,
   setConversationAutoDestroy,
+  setConversationHighRisk,
   type SendMessagePayload
 } from "@/features/chat/chatService";
 import type { ChatPreview, Message } from "@/features/chat/types";
@@ -25,6 +26,7 @@ type ChatState = {
   send: (conversationId: string, senderId: string, payload: string | SendMessagePayload) => Promise<void>;
   destroy: (conversationId: string, userId: string) => Promise<void>;
   setAutoDestroy: (conversationId: string, userId: string, seconds: number | null) => Promise<void>;
+  setHighRisk: (conversationId: string, userId: string, enabled: boolean) => Promise<void>;
   openDirect: (userId: string, username: string) => Promise<string>;
   subscribeToConversation: (conversationId: string, userId: string) => void;
   unsubscribeActive: () => void;
@@ -144,6 +146,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setAutoDestroy: async (conversationId, userId, seconds) => {
     await setConversationAutoDestroy(conversationId, seconds);
+    await get().loadPreviews(userId);
+  },
+
+  setHighRisk: async (conversationId, userId, enabled) => {
+    await setConversationHighRisk(conversationId, enabled);
     await get().loadPreviews(userId);
   },
 

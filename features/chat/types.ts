@@ -15,6 +15,9 @@ export type Conversation = {
   updated_at: string;
   auto_destroy_seconds?: number | null;
   auto_destroy_at?: string | null;
+  high_risk_enabled?: boolean | null;
+  crypto_epoch?: number | null;
+  crypto_destroyed_at?: string | null;
 };
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "failed";
