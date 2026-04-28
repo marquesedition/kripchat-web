@@ -13,7 +13,9 @@ jest.mock("@/lib/cryptoPayload", () => ({
 }));
 
 jest.mock("@/lib/e2ee", () => ({
-  deriveConversationSharedKey: jest.fn()
+  deriveConversationSharedKey: jest.fn(),
+  ensureE2EEIdentity: jest.fn(async () => ({ publicKey: "local-public", secretKey: "local-secret", version: 1, createdAt: "now" })),
+  isV2EncryptedEnvelope: jest.fn((value: string) => value.startsWith("krypchat:v2:"))
 }));
 
 jest.mock("@/lib/supabase", () => ({

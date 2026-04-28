@@ -7,7 +7,7 @@ import {
   encryptLegacyTextForConversation,
   encryptTextForConversation
 } from "@/lib/cryptoPayload";
-import { deriveConversationSharedKey } from "@/lib/e2ee";
+import { deriveConversationSharedKey, ensureE2EEIdentity, isV2EncryptedEnvelope } from "@/lib/e2ee";
 import { sanitizeMessage } from "@/lib/validation";
 import type { ChatPreview, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
 
@@ -206,8 +206,9 @@ export async function decryptMessageRecord(
   const encryptedBody = message.body;
   const encryptedLocationLabel = message.location_label;
   let sharedKey: Uint8Array | null = sharedKeyOverride ?? null;
+  let resolvedPeerPublicKey = peerPublicKey ?? null;
   if (!sharedKey) {
-    const resolvedPeerPublicKey = await resolvePeerPublicKey(message.conversation_id, currentUserId, peerPublicKey);
+    resolvedPeerPublicKey = await resolvePeerPublicKey(message.conversation_id, currentUserId, peerPublicKey);
     if (resolvedPeerPublicKey) {
       try {
         sharedKey = await deriveConversationSharedKey(currentUserId, resolvedPeerPublicKey, message.conversation_id);
@@ -216,11 +217,32 @@ export async function decryptMessageRecord(
       }
     }
   }
+
+  let decryptedBody = decryptTextForConversation(message.body, message.conversation_id, sharedKey);
+  let decryptedLocationLabel = message.location_label
+    ? decryptTextForConversation(message.location_label, message.conversation_id, sharedKey)
+    : null;
+
+  if (!sharedKeyOverride && isV2EncryptedEnvelope(message.body) && decryptedBody === "[encrypted packet]") {
+    const refreshedPeerPublicKey = await resolvePeerPublicKey(message.conversation_id, currentUserId, undefined, true);
+    if (refreshedPeerPublicKey && refreshedPeerPublicKey !== resolvedPeerPublicKey) {
+      try {
+        const refreshedSharedKey = await deriveConversationSharedKey(currentUserId, refreshedPeerPublicKey, message.conversation_id);
+        decryptedBody = decryptTextForConversation(message.body, message.conversation_id, refreshedSharedKey);
+        decryptedLocationLabel = message.location_label
+          ? decryptTextForConversation(message.location_label, message.conversation_id, refreshedSharedKey)
+          : null;
+      } catch {
+        // Keep first decrypt outcome if refresh key derivation fails.
+      }
+    }
+  }
+
   return {
     ...message,
-    body: decryptTextForConversation(message.body, message.conversation_id, sharedKey),
+    body: decryptedBody,
     encrypted_body: encryptedBody,
-    location_label: message.location_label ? decryptTextForConversation(message.location_label, message.conversation_id, sharedKey) : null,
+    location_label: decryptedLocationLabel,
     encrypted_location_label: encryptedLocationLabel
   };
 }
@@ -377,13 +399,13 @@ async function fetchConversationPeer(conversationId: string, currentUserId: stri
   return findPeerProfile((data ?? []) as Array<{ conversation_id?: string; profile_id: string; profile: Profile | Profile[] | null }>, conversationId, currentUserId);
 }
 
-async function resolvePeerPublicKey(conversationId: string, currentUserId: string, providedPeerPublicKey?: string | null) {
+async function resolvePeerPublicKey(conversationId: string, currentUserId: string, providedPeerPublicKey?: string | null, forceRefresh = false) {
   const cacheKey = `${currentUserId}:${conversationId}`;
   if (providedPeerPublicKey !== undefined) {
     return providedPeerPublicKey;
   }
 
-  if (peerPublicKeyCache.has(cacheKey)) {
+  if (!forceRefresh && peerPublicKeyCache.has(cacheKey)) {
     return peerPublicKeyCache.get(cacheKey) ?? null;
   }
 
@@ -424,12 +446,24 @@ function isMissingChatPreviewsRpc(error: unknown) {
 }
 
 async function requireConversationSharedKey(conversationId: string, currentUserId: string) {
+  await ensureSenderKeyPublished(currentUserId);
   const peer = await fetchConversationPeer(conversationId, currentUserId);
   if (!peer?.e2ee_public_key) {
     throw new Error("The other user has not published an E2EE key yet. Ask them to sign in again to complete secure setup.");
   }
 
   return deriveConversationSharedKey(currentUserId, peer.e2ee_public_key, conversationId);
+}
+
+async function ensureSenderKeyPublished(currentUserId: string) {
+  const identity = await ensureE2EEIdentity(currentUserId);
+  const { error } = await supabase
+    .from("profiles")
+    .update({ e2ee_public_key: identity.publicKey })
+    .eq("id", currentUserId);
+  if (error) {
+    throw new Error("Unable to sync your secure identity. Sign out and sign in again.");
+  }
 }
 
 async function resolveConversationSharedKey(conversationId: string, currentUserId: string) {

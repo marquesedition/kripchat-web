@@ -17,7 +17,9 @@ jest.mock("@/lib/cryptoPayload", () => ({
 }));
 
 jest.mock("@/lib/e2ee", () => ({
-  deriveConversationSharedKey: jest.fn(async () => new Uint8Array([1, 2, 3, 4]))
+  deriveConversationSharedKey: jest.fn(async () => new Uint8Array([1, 2, 3, 4])),
+  ensureE2EEIdentity: jest.fn(async () => ({ publicKey: "local-public", secretKey: "local-secret", version: 1, createdAt: "now" })),
+  isV2EncryptedEnvelope: jest.fn((value: string) => value.startsWith("krypchat:v2:"))
 }));
 
 jest.mock("@/lib/supabase", () => ({
@@ -33,6 +35,16 @@ describe("sendMessage payloads by message kind", () => {
     insertPayloads.length = 0;
 
     (supabase.from as jest.Mock).mockImplementation((table: string) => {
+      if (table === "profiles") {
+        const profilesQuery = {
+          update: jest.fn()
+        };
+        profilesQuery.update.mockReturnValue({
+          eq: jest.fn().mockResolvedValue({ error: null })
+        });
+        return profilesQuery;
+      }
+
       if (table === "conversation_participants") {
         const participantsQuery = {
           select: jest.fn(),
