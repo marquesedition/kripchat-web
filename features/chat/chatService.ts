@@ -12,6 +12,7 @@ import { sanitizeMessage } from "@/lib/validation";
 import type { ChatPreview, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
 
 const ATTACHMENT_BUCKET = "chat-attachments";
+const peerPublicKeyCache = new Map<string, string | null>();
 
 type PreviewRpcRow = {
   conversation_id: string;
@@ -145,7 +146,7 @@ export async function sendMessage(conversationId: string, senderId: string, payl
     .single();
 
   if (error) throw error;
-  return { optimistic, saved: await decryptMessageRecord(data as Message, senderId) };
+  return { optimistic, saved: await decryptMessageRecord(data as Message, senderId, undefined, sharedKey) };
 }
 
 export async function uploadChatAttachment(input: UploadAttachmentInput) {
@@ -196,15 +197,23 @@ export async function createDecryptedAttachmentUrl(path: string, conversationId:
   return blobToDataUri(decryptedBlob);
 }
 
-export async function decryptMessageRecord(message: Message, currentUserId: string, peerPublicKey?: string | null): Promise<Message> {
+export async function decryptMessageRecord(
+  message: Message,
+  currentUserId: string,
+  peerPublicKey?: string | null,
+  sharedKeyOverride?: Uint8Array | null
+): Promise<Message> {
   const encryptedBody = message.body;
   const encryptedLocationLabel = message.location_label;
-  let sharedKey: Uint8Array | null = null;
-  if (peerPublicKey) {
-    try {
-      sharedKey = await deriveConversationSharedKey(currentUserId, peerPublicKey, message.conversation_id);
-    } catch {
-      sharedKey = null;
+  let sharedKey: Uint8Array | null = sharedKeyOverride ?? null;
+  if (!sharedKey) {
+    const resolvedPeerPublicKey = await resolvePeerPublicKey(message.conversation_id, currentUserId, peerPublicKey);
+    if (resolvedPeerPublicKey) {
+      try {
+        sharedKey = await deriveConversationSharedKey(currentUserId, resolvedPeerPublicKey, message.conversation_id);
+      } catch {
+        sharedKey = null;
+      }
     }
   }
   return {
@@ -366,6 +375,26 @@ async function fetchConversationPeer(conversationId: string, currentUserId: stri
     .eq("conversation_id", conversationId);
   if (error) throw error;
   return findPeerProfile((data ?? []) as Array<{ conversation_id?: string; profile_id: string; profile: Profile | Profile[] | null }>, conversationId, currentUserId);
+}
+
+async function resolvePeerPublicKey(conversationId: string, currentUserId: string, providedPeerPublicKey?: string | null) {
+  const cacheKey = `${currentUserId}:${conversationId}`;
+  if (providedPeerPublicKey !== undefined) {
+    return providedPeerPublicKey;
+  }
+
+  if (peerPublicKeyCache.has(cacheKey)) {
+    return peerPublicKeyCache.get(cacheKey) ?? null;
+  }
+
+  try {
+    const peer = await fetchConversationPeer(conversationId, currentUserId);
+    const key = peer?.e2ee_public_key ?? null;
+    peerPublicKeyCache.set(cacheKey, key);
+    return key;
+  } catch {
+    return null;
+  }
 }
 
 function findPeerProfile(
