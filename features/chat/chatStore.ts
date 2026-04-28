@@ -168,7 +168,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           filter: `conversation_id=eq.${conversationId}`
         },
         async (payload) => {
-          const next = await decryptMessageRecord(payload.new as Message, userId);
+          const next = await decryptMessageRecord(payload.new as Message, userId, undefined, undefined, { retryPeerKey: true });
           if (next.sender_id !== userId) {
             showBrowserMessageNotification({
               title: "KripChat",
