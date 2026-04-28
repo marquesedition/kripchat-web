@@ -1,4 +1,5 @@
 import { isEmailNotConfirmedError, resolveEmailConfirmRedirectUrl, signInWithEmail, signOut, signUpWithEmail } from "@/features/auth/authService";
+import { ensureProvisionalE2EEIdentity } from "@/lib/e2ee";
 import { supabase } from "@/lib/supabase";
 
 jest.mock("@/lib/supabase", () => ({
@@ -10,6 +11,15 @@ jest.mock("@/lib/supabase", () => ({
     },
     from: jest.fn()
   }
+}));
+
+jest.mock("@/lib/e2ee", () => ({
+  ensureProvisionalE2EEIdentity: jest.fn(async () => ({
+    version: 1,
+    publicKey: "pub-key-1",
+    secretKey: "sec-key-1",
+    createdAt: "2026-01-01T00:00:00.000Z"
+  }))
 }));
 
 describe("authService sign-up and auth error helpers", () => {
@@ -34,10 +44,12 @@ describe("authService sign-up and auth error helpers", () => {
       options: {
         emailRedirectTo: "https://kripchat.com/auth/confirm",
         data: {
-          username: "agent_user"
+          username: "agent_user",
+          e2ee_public_key: "pub-key-1"
         }
       }
     });
+    expect(ensureProvisionalE2EEIdentity).toHaveBeenCalledWith("agent@example.com");
     expect(result.emailConfirmationRequired).toBe(true);
     expect(result.email).toBe("agent@example.com");
   });

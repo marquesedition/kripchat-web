@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { ensureProvisionalE2EEIdentity } from "@/lib/e2ee";
 import { normalizeUsername } from "@/lib/validation";
 import type { Profile } from "@/features/chat/types";
 
@@ -29,6 +30,7 @@ export async function signInWithEmail(email: string, password: string) {
 export async function signUpWithEmail(email: string, password: string, username: string) {
   const cleanUsername = normalizeUsername(username);
   const cleanEmail = email.trim().toLowerCase();
+  const provisionalIdentity = await ensureProvisionalE2EEIdentity(cleanEmail);
   const webOrigin = typeof window !== "undefined" && window.location ? window.location.origin : undefined;
   const emailRedirectTo = resolveEmailConfirmRedirectUrl(webOrigin);
   const { data, error } = await supabase.auth.signUp({
@@ -37,7 +39,8 @@ export async function signUpWithEmail(email: string, password: string, username:
     options: {
       emailRedirectTo,
       data: {
-        username: cleanUsername
+        username: cleanUsername,
+        e2ee_public_key: provisionalIdentity.publicKey
       }
     }
   });

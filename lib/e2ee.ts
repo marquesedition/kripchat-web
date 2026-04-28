@@ -5,6 +5,7 @@ import nacl from "tweetnacl";
 import { decodeBase64, decodeUTF8, encodeBase64, encodeUTF8 } from "tweetnacl-util";
 
 const IDENTITY_STORAGE_PREFIX = "krypchat.e2ee.identity.v1";
+const PROVISIONAL_IDENTITY_STORAGE_PREFIX = "krypchat.e2ee.identity.provisional.v1";
 const SHARED_KEY_DOMAIN = "krypchat-e2ee.shared-key.v1";
 
 export type E2EEIdentity = {
@@ -18,16 +19,29 @@ export async function ensureE2EEIdentity(userId: string): Promise<E2EEIdentity> 
   const existing = await readIdentity(userId);
   if (existing) return existing;
 
-  const keyPair = nacl.box.keyPair();
-  const created = {
-    version: 1 as const,
-    publicKey: encodeBase64(keyPair.publicKey),
-    secretKey: encodeBase64(keyPair.secretKey),
-    createdAt: new Date().toISOString()
-  };
-
+  const created = createIdentity();
   await writeIdentity(userId, created);
   return created;
+}
+
+export async function ensureProvisionalE2EEIdentity(email: string): Promise<E2EEIdentity> {
+  const normalizedEmail = normalizeIdentityEmail(email);
+  const existing = await readProvisionalIdentity(normalizedEmail);
+  if (existing) return existing;
+
+  const created = createIdentity();
+  await writeProvisionalIdentity(normalizedEmail, created);
+  return created;
+}
+
+export async function promoteProvisionalE2EEIdentity(email: string, userId: string): Promise<E2EEIdentity | null> {
+  const normalizedEmail = normalizeIdentityEmail(email);
+  const provisional = await readProvisionalIdentity(normalizedEmail);
+  if (!provisional) return null;
+
+  await writeIdentity(userId, provisional);
+  await clearProvisionalIdentity(normalizedEmail);
+  return provisional;
 }
 
 export async function deriveConversationSharedKey(userId: string, peerPublicKey: string, conversationId: string) {
@@ -86,6 +100,28 @@ async function writeIdentity(userId: string, identity: E2EEIdentity) {
   await writeDeviceSecret(`${IDENTITY_STORAGE_PREFIX}:${userId}`, JSON.stringify(identity));
 }
 
+async function readProvisionalIdentity(email: string) {
+  const raw = await readDeviceSecret(`${PROVISIONAL_IDENTITY_STORAGE_PREFIX}:${email}`);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as E2EEIdentity;
+    if (parsed.publicKey && parsed.secretKey) return parsed;
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+async function writeProvisionalIdentity(email: string, identity: E2EEIdentity) {
+  await writeDeviceSecret(`${PROVISIONAL_IDENTITY_STORAGE_PREFIX}:${email}`, JSON.stringify(identity));
+}
+
+async function clearProvisionalIdentity(email: string) {
+  await removeDeviceSecret(`${PROVISIONAL_IDENTITY_STORAGE_PREFIX}:${email}`);
+}
+
 async function readDeviceSecret(key: string) {
   if (Platform.OS === "web") return AsyncStorage.getItem(key);
   return SecureStore.getItemAsync(key);
@@ -98,4 +134,27 @@ async function writeDeviceSecret(key: string, value: string) {
   }
 
   await SecureStore.setItemAsync(key, value);
+}
+
+async function removeDeviceSecret(key: string) {
+  if (Platform.OS === "web") {
+    await AsyncStorage.removeItem(key);
+    return;
+  }
+
+  await SecureStore.deleteItemAsync(key);
+}
+
+function normalizeIdentityEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function createIdentity(): E2EEIdentity {
+  const keyPair = nacl.box.keyPair();
+  return {
+    version: 1,
+    publicKey: encodeBase64(keyPair.publicKey),
+    secretKey: encodeBase64(keyPair.secretKey),
+    createdAt: new Date().toISOString()
+  };
 }

@@ -10,7 +10,7 @@ import {
   type SignUpResult
 } from "@/features/auth/authService";
 import type { Profile } from "@/features/chat/types";
-import { ensureE2EEIdentity } from "@/lib/e2ee";
+import { ensureE2EEIdentity, promoteProvisionalE2EEIdentity } from "@/lib/e2ee";
 import { supabase } from "@/lib/supabase";
 
 let authSubscriptionBound = false;
@@ -24,7 +24,15 @@ async function loadProfile(userId: string) {
   }
 }
 
-async function loadPreparedProfile(userId: string) {
+async function loadPreparedProfile(userId: string, email?: string | null) {
+  if (email) {
+    try {
+      await promoteProvisionalE2EEIdentity(email, userId);
+    } catch (error) {
+      console.warn("Unable to promote provisional E2EE identity", error);
+    }
+  }
+
   const identity = await ensureE2EEIdentity(userId);
   const profile = await loadProfile(userId);
   if (!profile) return null;
@@ -62,7 +70,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data } = await supabase.auth.getSession();
       set({ session: data.session, initialized: true });
       if (data.session?.user.id) {
-        const profile = await loadPreparedProfile(data.session.user.id);
+        const profile = await loadPreparedProfile(data.session.user.id, data.session.user.email);
         set({ profile });
       }
     } catch (error) {
@@ -76,7 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     supabase.auth.onAuthStateChange(async (_event, session) => {
       set({ session });
       if (session?.user.id) {
-        const profile = await loadPreparedProfile(session.user.id);
+        const profile = await loadPreparedProfile(session.user.id, session.user.email);
         set({ profile });
       } else {
         set({ profile: null });
@@ -88,7 +96,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     try {
       const session = await signInWithEmail(email, password);
-      const profile = session?.user.id ? await loadPreparedProfile(session.user.id) : null;
+      const profile = session?.user.id ? await loadPreparedProfile(session.user.id, session.user.email) : null;
       set({ session, profile });
     } finally {
       set({ loading: false });
@@ -99,7 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     try {
       const result = await signUpWithEmail(email, password, username);
-      const profile = result.session?.user.id ? await loadPreparedProfile(result.session.user.id) : null;
+      const profile = result.session?.user.id ? await loadPreparedProfile(result.session.user.id, result.session.user.email) : null;
       set({ session: result.session, profile });
       return result;
     } finally {
@@ -114,8 +122,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refreshProfile: async () => {
     const userId = get().session?.user.id;
+    const email = get().session?.user.email;
     if (!userId) return;
-    const profile = await loadPreparedProfile(userId);
+    const profile = await loadPreparedProfile(userId, email);
     set({ profile });
   },
 
