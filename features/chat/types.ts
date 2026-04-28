@@ -13,6 +13,8 @@ export type Conversation = {
   type: "direct";
   created_at: string;
   updated_at: string;
+  auto_destroy_seconds?: number | null;
+  auto_destroy_at?: string | null;
 };
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "failed";

@@ -162,6 +162,6 @@ describe("fetchChatPreviews fallback behavior", () => {
     });
 
     await expect(fetchChatPreviews("user-1")).rejects.toMatchObject({ code: "42501" });
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(supabase.from).toHaveBeenCalledWith("conversations");
   });
 });

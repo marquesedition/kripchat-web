@@ -20,12 +20,18 @@ import { sanitizeMessage } from "@/lib/validation";
 
 const EMPTY_MESSAGES: Message[] = [];
 const VISIBILITY_OPTIONS = [5, 10, 30, 60];
+const AUTO_DESTROY_OPTIONS = [
+  { label: "OFF", seconds: null },
+  { label: "5m", seconds: 300 },
+  { label: "15m", seconds: 900 },
+  { label: "1h", seconds: 3600 },
+  { label: "24h", seconds: 86400 }
+] as const;
 
 type ViewWindowMode = "auto" | "manual";
 
 type SelectedPacket = {
   message: Message;
-  cipherText: string;
 } | null;
 
 export default function ChatScreen() {
@@ -37,6 +43,8 @@ export default function ChatScreen() {
   const loadMessages = useChatStore((state) => state.loadMessages);
   const loadOlderMessages = useChatStore((state) => state.loadOlderMessages);
   const send = useChatStore((state) => state.send);
+  const destroy = useChatStore((state) => state.destroy);
+  const setAutoDestroy = useChatStore((state) => state.setAutoDestroy);
   const subscribeToConversation = useChatStore((state) => state.subscribeToConversation);
   const unsubscribeActive = useChatStore((state) => state.unsubscribeActive);
   const [draft, setDraft] = useState("");
@@ -50,11 +58,14 @@ export default function ChatScreen() {
   const listRef = useRef<FlatList>(null);
   const { typingUserIds, broadcastTyping } = useTypingChannel(conversationId ?? "pending", userId);
 
-  const peer = useMemo(() => previews.find((item) => item.conversation.id === conversationId)?.peer, [conversationId, previews]);
+  const peerPreview = useMemo(() => previews.find((item) => item.conversation.id === conversationId), [conversationId, previews]);
+  const peer = peerPreview?.peer;
   const peerCode = formatOpsCode(peer?.username);
   const threadCode = formatShortId(conversationId ?? "0000");
   const visibleMessages = useMemo(() => messages, [messages]);
   const presenceStatus = peer?.online_at ? "PRESENCE SYNCED" : "PRESENCE STANDBY";
+  const activeAutoDestroySeconds = peerPreview?.conversation.auto_destroy_seconds ?? null;
+  const autoDestroyLabel = formatAutoDestroyLabel(activeAutoDestroySeconds, peerPreview?.conversation.auto_destroy_at);
 
   function goBack() {
     if (router.canGoBack()) {
@@ -251,6 +262,43 @@ export default function ChatScreen() {
     }
   }
 
+  async function updateAutoDestroy(seconds: number | null) {
+    if (!conversationId || !userId) return;
+    try {
+      await setAutoDestroy(conversationId, userId, seconds);
+      Alert.alert("Autodestruccion actualizada", seconds ? `El chat se destruira en ${formatDuration(seconds)}.` : "La autodestruccion del chat fue desactivada.");
+    } catch (error) {
+      Alert.alert("No se pudo setear", getUserFacingErrorMessage(error, "No se pudo actualizar la autodestruccion del chat."));
+    }
+  }
+
+  function confirmDestroyConversation() {
+    Alert.alert(
+      "Destruir conversacion",
+      "Esto borra la conversacion completa para todos, incluyendo mensajes y adjuntos del servidor. No se puede deshacer.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Destruir",
+          style: "destructive",
+          onPress: () => {
+            destroyCurrentConversation().catch((error) =>
+              Alert.alert("No se pudo destruir", getUserFacingErrorMessage(error, "No se pudo borrar la conversacion del servidor."))
+            );
+          }
+        }
+      ]
+    );
+  }
+
+  async function destroyCurrentConversation() {
+    if (!conversationId || !userId) return;
+    setSecurityOpen(false);
+    await destroy(conversationId, userId);
+    unsubscribeActive();
+    router.replace("/(tabs)");
+  }
+
   return (
     <ScreenShell>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8} style={styles.root}>
@@ -277,7 +325,7 @@ export default function ChatScreen() {
               mine={item.sender_id === userId}
               currentUserId={userId ?? null}
               revealDurationMs={viewWindowMode === "manual" ? visibilitySeconds * 1000 : undefined}
-              onLongPress={(message, cipherText) => setSelectedPacket({ message, cipherText })}
+              onLongPress={(message) => setSelectedPacket({ message })}
             />
           )}
           contentContainerStyle={styles.messages}
@@ -343,17 +391,6 @@ export default function ChatScreen() {
                   {selectedPacket ? formatPacketManifest(selectedPacket.message) : ""}
                 </Text>
               </ScrollView>
-              <ActionRow icon="copy-outline" label="Copy decrypted text" onPress={() => selectedPacket && copyText(selectedPacket.message.body, "Decrypted text")} />
-              <ActionRow
-                icon="barcode-outline"
-                label="Copy encrypted packet"
-                onPress={() => selectedPacket && copyText(selectedPacket.message.encrypted_body ?? selectedPacket.cipherText, "Encrypted packet")}
-              />
-              <ActionRow
-                icon="document-text-outline"
-                label="Copy packet dossier JSON"
-                onPress={() => selectedPacket && copyText(formatPacketManifest(selectedPacket.message), "Packet dossier")}
-              />
               <ActionRow icon="close-circle-outline" label="Close packet intel" onPress={() => setSelectedPacket(null)} />
             </Pressable>
           </Pressable>
@@ -407,7 +444,24 @@ export default function ChatScreen() {
                 <InfoCell label="TRANSPORT" value="HTTPS + REALTIME" />
                 <InfoCell label="PAYLOAD" value="CLIENT ENCRYPTED" />
                 <InfoCell label="VIEW WINDOW" value={viewWindowMode === "auto" ? "AUTO READ" : `${visibilitySeconds}s MANUAL`} />
+                <InfoCell label="AUTODESTRUCCION" value={autoDestroyLabel} />
                 <InfoCell label="KEY MODEL" value="DEVICE-HELD KEYPAIR" />
+              </View>
+              <Text style={styles.optionTitle}>AUTODESTRUCCION DEL CHAT</Text>
+              <View style={styles.segmentRow}>
+                {AUTO_DESTROY_OPTIONS.map((option) => {
+                  const active = activeAutoDestroySeconds === option.seconds;
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      key={option.label}
+                      onPress={() => updateAutoDestroy(option.seconds)}
+                      style={[styles.segment, active && styles.segmentActive]}
+                    >
+                      <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{option.label}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
               <Text style={styles.optionTitle}>VIEW WINDOW</Text>
               <View style={styles.modeRow}>
@@ -443,6 +497,7 @@ export default function ChatScreen() {
               </View>
               <ActionRow icon="copy-outline" label="Copy channel id" onPress={() => conversationId && copyText(conversationId, "Channel id")} />
               <ActionRow icon="sync-outline" label="Reload encrypted packets" onPress={reloadThread} />
+              <ActionRow danger icon="trash-outline" label="Destruir conversacion para todos" onPress={confirmDestroyConversation} />
               <ActionRow icon="exit-outline" label="Close channel" onPress={goBack} />
             </Pressable>
           </Pressable>
@@ -477,6 +532,18 @@ function ToolButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyp
       <Text style={styles.toolLabel}>{label}</Text>
     </Pressable>
   );
+}
+
+function formatDuration(seconds: number) {
+  if (seconds < 3600) return `${Math.round(seconds / 60)} minutos`;
+  if (seconds === 3600) return "1 hora";
+  return `${Math.round(seconds / 3600)} horas`;
+}
+
+function formatAutoDestroyLabel(seconds?: number | null, deadline?: string | null) {
+  if (!seconds) return "OFF";
+  if (!deadline) return formatDuration(seconds).toUpperCase();
+  return `${formatDuration(seconds).toUpperCase()} / ${new Date(deadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 const styles = StyleSheet.create({

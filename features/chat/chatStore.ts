@@ -1,6 +1,15 @@
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { create } from "zustand";
-import { createDirectConversation, decryptMessageRecord, fetchChatPreviews, fetchMessages, sendMessage, type SendMessagePayload } from "@/features/chat/chatService";
+import {
+  createDirectConversation,
+  decryptMessageRecord,
+  destroyConversation,
+  fetchChatPreviews,
+  fetchMessages,
+  sendMessage,
+  setConversationAutoDestroy,
+  type SendMessagePayload
+} from "@/features/chat/chatService";
 import type { ChatPreview, Message } from "@/features/chat/types";
 import { supabase } from "@/lib/supabase";
 
@@ -14,6 +23,8 @@ type ChatState = {
   loadMessages: (conversationId: string, userId: string) => Promise<void>;
   loadOlderMessages: (conversationId: string, userId: string) => Promise<void>;
   send: (conversationId: string, senderId: string, payload: string | SendMessagePayload) => Promise<void>;
+  destroy: (conversationId: string, userId: string) => Promise<void>;
+  setAutoDestroy: (conversationId: string, userId: string, seconds: number | null) => Promise<void>;
   openDirect: (userId: string, username: string) => Promise<string>;
   subscribeToConversation: (conversationId: string, userId: string) => void;
   unsubscribeActive: () => void;
@@ -117,6 +128,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const conversationId = await createDirectConversation(userId, username);
     await get().loadPreviews(userId);
     return conversationId;
+  },
+
+  destroy: async (conversationId, userId) => {
+    await destroyConversation(conversationId);
+    set((state) => {
+      const { [conversationId]: _removed, ...messagesByConversation } = state.messagesByConversation;
+      return {
+        messagesByConversation,
+        previews: state.previews.filter((item) => item.conversation.id !== conversationId)
+      };
+    });
+    await get().loadPreviews(userId);
+  },
+
+  setAutoDestroy: async (conversationId, userId, seconds) => {
+    await setConversationAutoDestroy(conversationId, seconds);
+    await get().loadPreviews(userId);
   },
 
   subscribeToConversation: (conversationId, userId) => {

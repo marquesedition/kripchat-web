@@ -19,6 +19,8 @@ type PreviewRpcRow = {
   conversation_type: Conversation["type"];
   conversation_created_at: string;
   conversation_updated_at: string;
+  conversation_auto_destroy_seconds: number | null;
+  conversation_auto_destroy_at: string | null;
   peer_id: string;
   peer_username: string;
   peer_avatar_url: string | null;
@@ -63,6 +65,7 @@ export type UploadAttachmentInput = {
 };
 
 export async function fetchChatPreviews(currentUserId: string): Promise<ChatPreview[]> {
+  await destroyExpiredConversations();
   const { data, error } = await supabase.rpc("list_chat_previews");
   if (error) {
     if (isMissingChatPreviewsRpc(error)) {
@@ -75,6 +78,7 @@ export async function fetchChatPreviews(currentUserId: string): Promise<ChatPrev
 }
 
 export async function fetchMessages(conversationId: string, currentUserId: string, before?: string): Promise<Message[]> {
+  await destroyExpiredConversations();
   let query = supabase
     .from("messages")
     .select("*")
@@ -173,6 +177,46 @@ export async function uploadChatAttachment(input: UploadAttachmentInput) {
     mimeType: input.mimeType,
     size: blob.size
   };
+}
+
+export async function destroyConversation(conversationId: string) {
+  await removeConversationAttachments(conversationId);
+  const { error } = await supabase.from("conversations").delete().eq("id", conversationId);
+  if (error) throw error;
+}
+
+export async function setConversationAutoDestroy(conversationId: string, seconds: number | null) {
+  const { error } = await supabase.rpc("set_conversation_auto_destroy", {
+    p_conversation_id: conversationId,
+    p_seconds: seconds
+  });
+  if (error) throw error;
+}
+
+export async function destroyExpiredConversations() {
+  try {
+    const { data, error: selectError } = await supabase
+      .from("conversations")
+      .select("id")
+      .not("auto_destroy_at", "is", null)
+      .lte("auto_destroy_at", new Date().toISOString());
+    if (selectError) return;
+
+    const conversationIds = ((data ?? []) as Array<{ id: string }>).map((conversation) => conversation.id);
+    for (const conversationId of conversationIds) {
+      await removeConversationAttachments(conversationId);
+    }
+
+    if (!conversationIds.length) return;
+
+    const { error: deleteError } = await supabase
+      .from("conversations")
+      .delete()
+      .in("id", conversationIds);
+    if (deleteError) return;
+  } catch {
+    return;
+  }
 }
 
 export async function createAttachmentSignedUrl(path: string) {
@@ -301,7 +345,9 @@ async function mapPreviewsFromRpcRows(rows: PreviewRpcRow[], currentUserId: stri
         id: row.conversation_id,
         type: row.conversation_type,
         created_at: row.conversation_created_at,
-        updated_at: row.conversation_updated_at
+        updated_at: row.conversation_updated_at,
+        auto_destroy_seconds: row.conversation_auto_destroy_seconds ?? null,
+        auto_destroy_at: row.conversation_auto_destroy_at ?? null
       };
 
       const peer: Profile = {
@@ -470,6 +516,33 @@ async function resolveConversationSharedKey(conversationId: string, currentUserI
   } catch {
     return null;
   }
+}
+
+async function removeConversationAttachments(conversationId: string) {
+  const paths = await listAttachmentPaths(conversationId);
+  if (!paths.length) return;
+
+  const { error } = await supabase.storage.from(ATTACHMENT_BUCKET).remove(paths);
+  if (error) throw error;
+}
+
+async function listAttachmentPaths(prefix: string): Promise<string[]> {
+  const { data, error } = await supabase.storage.from(ATTACHMENT_BUCKET).list(prefix, {
+    limit: 1000,
+    sortBy: { column: "name", order: "asc" }
+  });
+  if (error) throw error;
+
+  const paths: string[] = [];
+  for (const item of data ?? []) {
+    const itemPath = `${prefix}/${item.name}`;
+    if (item.id) {
+      paths.push(itemPath);
+      continue;
+    }
+    paths.push(...(await listAttachmentPaths(itemPath)));
+  }
+  return paths;
 }
 
 function blobToDataUri(blob: Blob) {
