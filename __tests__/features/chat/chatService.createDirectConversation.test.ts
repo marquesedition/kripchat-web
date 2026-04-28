@@ -33,21 +33,6 @@ describe("createDirectConversation guards and error translation", () => {
     jest.clearAllMocks();
   });
 
-  function mockProfileLookup(result: { data: unknown; error: unknown }) {
-    const builder = {
-      select: jest.fn(),
-      eq: jest.fn(),
-      neq: jest.fn(),
-      maybeSingle: jest.fn()
-    };
-    builder.select.mockReturnValue(builder);
-    builder.eq.mockReturnValue(builder);
-    builder.neq.mockReturnValue(builder);
-    builder.maybeSingle.mockResolvedValue(result);
-    (supabase.from as jest.Mock).mockReturnValue(builder);
-    return builder;
-  }
-
   it("requires an authenticated session", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({ data: { session: null } });
 
@@ -76,7 +61,7 @@ describe("createDirectConversation guards and error translation", () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
     });
-    mockProfileLookup({
+    (supabase.rpc as jest.Mock).mockResolvedValue({
       data: null,
       error: {
         code: "42501",
@@ -90,13 +75,25 @@ describe("createDirectConversation guards and error translation", () => {
     );
   });
 
-  it("opens the direct conversation when lookup and rpc succeed", async () => {
+  it("maps peer-not-found rpc errors to a user-facing message", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
     });
-    const query = mockProfileLookup({
-      data: { id: "peer-1" },
-      error: null
+    (supabase.rpc as jest.Mock).mockResolvedValue({
+      data: null,
+      error: {
+        code: "P0001",
+        message: "peer not found",
+        details: null
+      }
+    });
+
+    await expect(createDirectConversation("user-1", "Peer_Name")).rejects.toThrow("No profile found for that username");
+  });
+
+  it("opens the direct conversation when lookup and rpc succeed", async () => {
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
     });
     (supabase.rpc as jest.Mock).mockResolvedValue({
       data: "conversation-1",
@@ -104,7 +101,6 @@ describe("createDirectConversation guards and error translation", () => {
     });
 
     await expect(createDirectConversation("user-1", "Peer_Name")).resolves.toBe("conversation-1");
-    expect(query.eq).toHaveBeenCalledWith("username", "peer_name");
-    expect(supabase.rpc).toHaveBeenCalledWith("create_direct_conversation", { peer_id: "peer-1" });
+    expect(supabase.rpc).toHaveBeenCalledWith("create_direct_conversation_by_username", { peer_username: "peer_name" });
   });
 });

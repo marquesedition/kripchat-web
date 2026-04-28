@@ -256,25 +256,19 @@ export async function createDirectConversation(currentUserId: string, username: 
   const normalizedUsername = username.trim().toLowerCase();
   if (!normalizedUsername) throw new Error("Enter a valid username.");
 
-  const { data: peer, error: peerError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("username", normalizedUsername)
-    .neq("id", currentUserId)
-    .maybeSingle();
-  if (peerError) {
-    const rawMessage = `${peerError.message ?? ""} ${peerError.details ?? ""}`.toLowerCase();
-    if (peerError.code === "42501" || rawMessage.includes("row-level security") || rawMessage.includes("permission denied")) {
+  const { data, error } = await supabase.rpc("create_direct_conversation_by_username", {
+    peer_username: normalizedUsername
+  });
+  if (error) {
+    const rawMessage = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+    if (error.code === "42501" || rawMessage.includes("row-level security") || rawMessage.includes("permission denied")) {
       throw new Error("Supabase blocked profile lookup. Sign in with a confirmed account and try again.");
     }
-    throw peerError;
+    if (rawMessage.includes("peer not found")) {
+      throw new Error("No profile found for that username");
+    }
+    throw error;
   }
-  if (!peer) throw new Error("No profile found for that username");
-
-  const { data, error } = await supabase.rpc("create_direct_conversation", {
-    peer_id: peer.id
-  });
-  if (error) throw error;
   return data as string;
 }
 
