@@ -10,6 +10,7 @@ import {
 import { deriveConversationSharedKey, ensureE2EEIdentity, isV2EncryptedEnvelope } from "@/lib/e2ee";
 import { sanitizeMessage } from "@/lib/validation";
 import type { ChatPreview, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
+import { sendExpoPushNotification } from "@/services/notifications";
 
 const ATTACHMENT_BUCKET = "chat-attachments";
 const SIGNED_URL_TTL_SECONDS = 60;
@@ -154,6 +155,7 @@ export async function sendMessage(conversationId: string, senderId: string, payl
     .single();
 
   if (error) throw error;
+  notifyPeerOfMessage(conversationId, senderId, kind).catch(() => undefined);
   return { optimistic, saved: await decryptMessageRecord(data as Message, senderId, undefined, sharedKey) };
 }
 
@@ -543,6 +545,26 @@ async function resolveConversationSharedKey(conversationId: string, currentUserI
   }
 }
 
+async function notifyPeerOfMessage(conversationId: string, senderId: string, kind: MessageKind) {
+  const peer = await fetchConversationPeer(conversationId, senderId);
+  if (!peer?.push_token) return;
+
+  await sendExpoPushNotification({
+    to: peer.push_token,
+    title: "KripChat",
+    body: notificationBodyForKind(kind),
+    conversationId
+  });
+
+  await logSecurityEvent(senderId, conversationId, "push_notification_sent", { kind });
+}
+
+function notificationBodyForKind(kind: MessageKind) {
+  if (kind === "text") return "Nuevo paquete seguro recibido.";
+  if (kind === "location") return "Nueva ubicacion segura recibida.";
+  return "Nuevo adjunto seguro recibido.";
+}
+
 async function removeConversationAttachments(conversationId: string) {
   const paths = await listAttachmentPaths(conversationId);
   if (!paths.length) return;
@@ -580,13 +602,17 @@ function blobToDataUri(blob: Blob) {
 }
 
 async function logSecurityEvent(actorId: string | null, conversationId: string, eventType: string, metadata: Record<string, unknown>) {
-  const resolvedActorId = actorId ?? (await supabase.auth.getSession()).data.session?.user.id;
-  if (!resolvedActorId) return;
+  try {
+    const resolvedActorId = actorId ?? (await supabase.auth.getSession()).data.session?.user.id;
+    if (!resolvedActorId) return;
 
-  await supabase.from("security_audit_events").insert({
-    actor_id: resolvedActorId,
-    conversation_id: conversationId,
-    event_type: eventType,
-    metadata
-  });
+    await supabase.from("security_audit_events").insert({
+      actor_id: resolvedActorId,
+      conversation_id: conversationId,
+      event_type: eventType,
+      metadata
+    });
+  } catch {
+    return;
+  }
 }

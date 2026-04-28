@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Stack, useSegments } from "expo-router";
+import { router, Stack, useSegments } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "@/features/auth/authStore";
 import { usePresence } from "@/hooks/usePresence";
 import { colors } from "@/lib/theme";
+import { listenForNotificationResponses } from "@/services/notifications";
 
 export default function RootLayout() {
   const bootstrap = useAuthStore((state) => state.bootstrap);
@@ -21,6 +22,14 @@ export default function RootLayout() {
   useEffect(() => {
     bootstrap().catch(() => undefined);
   }, [bootstrap]);
+
+  useEffect(() => {
+    const subscription = listenForNotificationResponses((conversationId) => {
+      router.push(`/chat/${conversationId}`);
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   if (!initialized) {
     return (

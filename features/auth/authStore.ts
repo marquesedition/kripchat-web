@@ -12,6 +12,7 @@ import {
 import type { Profile } from "@/features/chat/types";
 import { ensureE2EEIdentity, promoteProvisionalE2EEIdentity } from "@/lib/e2ee";
 import { supabase } from "@/lib/supabase";
+import { registerForPushNotifications } from "@/services/notifications";
 
 let authSubscriptionBound = false;
 
@@ -46,6 +47,23 @@ async function loadPreparedProfile(userId: string, email?: string | null) {
   }
 }
 
+async function syncPushToken(userId: string, profile: Profile | null) {
+  if (!profile) return null;
+
+  try {
+    const pushToken = await registerForPushNotifications();
+    if (!pushToken || profile?.push_token === pushToken) return profile;
+    return await updateProfile(userId, {
+      username: profile.username,
+      avatar_url: profile.avatar_url,
+      push_token: pushToken
+    });
+  } catch (error) {
+    console.warn("Unable to register push notifications", error);
+    return profile;
+  }
+}
+
 type AuthState = {
   session: Session | null;
   profile: Profile | null;
@@ -70,7 +88,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data } = await supabase.auth.getSession();
       set({ session: data.session, initialized: true });
       if (data.session?.user.id) {
-        const profile = await loadPreparedProfile(data.session.user.id, data.session.user.email);
+        const profile = await syncPushToken(
+          data.session.user.id,
+          await loadPreparedProfile(data.session.user.id, data.session.user.email)
+        );
         set({ profile });
       }
     } catch (error) {
@@ -84,7 +105,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     supabase.auth.onAuthStateChange(async (_event, session) => {
       set({ session });
       if (session?.user.id) {
-        const profile = await loadPreparedProfile(session.user.id, session.user.email);
+        const profile = await syncPushToken(session.user.id, await loadPreparedProfile(session.user.id, session.user.email));
         set({ profile });
       } else {
         set({ profile: null });
@@ -96,7 +117,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     try {
       const session = await signInWithEmail(email, password);
-      const profile = session?.user.id ? await loadPreparedProfile(session.user.id, session.user.email) : null;
+      const profile = session?.user.id ? await syncPushToken(session.user.id, await loadPreparedProfile(session.user.id, session.user.email)) : null;
       set({ session, profile });
     } finally {
       set({ loading: false });
@@ -107,7 +128,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     try {
       const result = await signUpWithEmail(email, password, username);
-      const profile = result.session?.user.id ? await loadPreparedProfile(result.session.user.id, result.session.user.email) : null;
+      const profile = result.session?.user.id
+        ? await syncPushToken(result.session.user.id, await loadPreparedProfile(result.session.user.id, result.session.user.email))
+        : null;
       set({ session: result.session, profile });
       return result;
     } finally {
