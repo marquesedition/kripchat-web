@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "@/features/auth/authStore";
@@ -11,12 +11,25 @@ export default function RootLayout() {
   const bootstrap = useAuthStore((state) => state.bootstrap);
   const initialized = useAuthStore((state) => state.initialized);
   const userId = useAuthStore((state) => state.session?.user.id);
+  const redirectHandledRef = useRef(false);
 
   usePresence(userId);
 
   useEffect(() => {
     bootstrap().catch(() => undefined);
   }, [bootstrap]);
+
+  useEffect(() => {
+    if (redirectHandledRef.current) return;
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    if (!redirect || !redirect.startsWith("/")) return;
+
+    redirectHandledRef.current = true;
+    router.replace(redirect as never);
+  }, []);
 
   if (!initialized) {
     return (
