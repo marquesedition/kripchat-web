@@ -47,6 +47,9 @@ jobs:
       - name: Export Expo web app
         run: npm run web:export
 
+      - name: Ensure SPA fallback on GitHub Pages
+        run: cp dist/index.html dist/404.html
+
       - name: Setup Pages (auto-enable with PAT)
         if: ${{ env.PAGES_ADMIN_PAT != '' }}
         uses: actions/configure-pages@v5
