@@ -12,8 +12,9 @@ export default function RootLayout() {
   const initialized = useAuthStore((state) => state.initialized);
   const userId = useAuthStore((state) => state.session?.user.id);
   const segments = useSegments();
-  const inChat = segments[0] === "chat" && Boolean(segments[1]);
-  const inInbox = segments[0] === "(tabs)" && segments.length === 1;
+  const segmentPath = segments.join("/");
+  const inChat = segmentPath.startsWith("chat/");
+  const inInbox = segmentPath === "(tabs)";
 
   usePresence(userId, inChat || inInbox);
 
