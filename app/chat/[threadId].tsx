@@ -40,9 +40,7 @@ export default function ChatScreen() {
   const subscribeToConversation = useChatStore((state) => state.subscribeToConversation);
   const unsubscribeActive = useChatStore((state) => state.unsubscribeActive);
   const [draft, setDraft] = useState("");
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set());
   const [selectedPacket, setSelectedPacket] = useState<SelectedPacket>(null);
-  const [packetManifest, setPacketManifest] = useState<SelectedPacket>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [desiredLocationOpen, setDesiredLocationOpen] = useState(false);
@@ -55,7 +53,7 @@ export default function ChatScreen() {
   const peer = useMemo(() => previews.find((item) => item.conversation.id === conversationId)?.peer, [conversationId, previews]);
   const peerCode = formatOpsCode(peer?.username);
   const threadCode = formatShortId(conversationId ?? "0000");
-  const visibleMessages = useMemo(() => messages.filter((message) => !hiddenIds.has(message.client_id ?? message.id)), [hiddenIds, messages]);
+  const visibleMessages = useMemo(() => messages, [messages]);
   const presenceStatus = peer?.online_at ? "PRESENCE SYNCED" : "PRESENCE STANDBY";
 
   function goBack() {
@@ -218,39 +216,6 @@ export default function ChatScreen() {
     Alert.alert("Copied", `${label} copied to clipboard.`);
   }
 
-  function hideSelectedPacket() {
-    if (!selectedPacket) return;
-    const key = selectedPacket.message.client_id ?? selectedPacket.message.id;
-    setHiddenIds((current) => {
-      const next = new Set(current);
-      next.add(key);
-      return next;
-    });
-    setSelectedPacket(null);
-  }
-
-  function showPacketIntel() {
-    if (!selectedPacket) return;
-    const { message } = selectedPacket;
-    setSelectedPacket(null);
-    Alert.alert(
-      "Packet intel",
-      [
-        `Status: ${message.status}`,
-        `Sent: ${new Date(message.created_at).toLocaleString()}`,
-        `Sender: ${formatShortId(message.sender_id)}`,
-        `Packet: ${formatShortId(message.client_id ?? message.id)}`,
-        `Thread: ${formatShortId(message.conversation_id)}`
-      ].join("\n")
-    );
-  }
-
-  function openPacketManifest() {
-    if (!selectedPacket) return;
-    setPacketManifest(selectedPacket);
-    setSelectedPacket(null);
-  }
-
   function buildPacketManifest(message: Message) {
     return {
       id: message.id,
@@ -355,38 +320,41 @@ export default function ChatScreen() {
         </View>
 
         <Modal visible={selectedPacket !== null} transparent animationType="fade" onRequestClose={() => setSelectedPacket(null)}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setSelectedPacket(null)}>
-            <Pressable style={styles.actionSheet}>
-              <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>PACKET ACTIONS</Text>
+          <Pressable style={styles.intelBackdrop} onPress={() => setSelectedPacket(null)}>
+            <Pressable style={[styles.actionSheet, styles.intelSheet]} onPress={() => undefined}>
+              <View style={styles.intelHeader}>
+                <Text style={styles.sheetTitle}>PACKET INTEL</Text>
+                <Pressable accessibilityRole="button" onPress={() => setSelectedPacket(null)} style={styles.closeIntelButton}>
+                  <Ionicons name="close" color={colors.text} size={18} />
+                </Pressable>
+              </View>
+              <View style={styles.infoGrid}>
+                <InfoCell label="STATUS" value={selectedPacket?.message.status.toUpperCase() ?? "-"} />
+                <InfoCell label="KIND" value={selectedPacket?.message.kind.toUpperCase() ?? "-"} />
+                <InfoCell label="SENDER" value={selectedPacket ? formatShortId(selectedPacket.message.sender_id) : "-"} />
+                <InfoCell label="THREAD" value={selectedPacket ? formatShortId(selectedPacket.message.conversation_id) : "-"} />
+                <InfoCell label="MESSAGE ID" value={selectedPacket ? formatShortId(selectedPacket.message.id) : "-"} />
+                <InfoCell label="CLIENT ID" value={selectedPacket ? formatShortId(selectedPacket.message.client_id ?? selectedPacket.message.id) : "-"} />
+                <InfoCell label="TIMESTAMP" value={selectedPacket ? new Date(selectedPacket.message.created_at).toLocaleString() : "-"} />
+                <InfoCell label="ENVELOPE" value={selectedPacket?.message.encrypted_body?.startsWith("krypchat:v2:") ? "KRYPCHAT V2" : "UNKNOWN"} />
+              </View>
+              <ScrollView style={styles.dossierBox} contentContainerStyle={styles.dossierContent}>
+                <Text style={styles.dossierText}>
+                  {selectedPacket ? formatPacketManifest(selectedPacket.message) : ""}
+                </Text>
+              </ScrollView>
               <ActionRow icon="copy-outline" label="Copy decrypted text" onPress={() => selectedPacket && copyText(selectedPacket.message.body, "Decrypted text")} />
               <ActionRow
                 icon="barcode-outline"
                 label="Copy encrypted packet"
                 onPress={() => selectedPacket && copyText(selectedPacket.message.encrypted_body ?? selectedPacket.cipherText, "Encrypted packet")}
               />
-              <ActionRow icon="analytics-outline" label="View packet intel" onPress={showPacketIntel} />
-              <ActionRow icon="document-text-outline" label="Open packet dossier" onPress={openPacketManifest} />
-              <ActionRow icon="eye-off-outline" label="Hide on this device" danger onPress={hideSelectedPacket} />
-            </Pressable>
-          </Pressable>
-        </Modal>
-
-        <Modal visible={packetManifest !== null} transparent animationType="fade" onRequestClose={() => setPacketManifest(null)}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setPacketManifest(null)}>
-            <Pressable style={styles.actionSheet}>
-              <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>PACKET DOSSIER</Text>
-              <ScrollView style={styles.dossierBox} contentContainerStyle={styles.dossierContent}>
-                <Text style={styles.dossierText}>
-                  {packetManifest ? formatPacketManifest(packetManifest.message) : ""}
-                </Text>
-              </ScrollView>
               <ActionRow
-                icon="copy-outline"
+                icon="document-text-outline"
                 label="Copy packet dossier JSON"
-                onPress={() => packetManifest && copyText(formatPacketManifest(packetManifest.message), "Packet dossier")}
+                onPress={() => selectedPacket && copyText(formatPacketManifest(selectedPacket.message), "Packet dossier")}
               />
+              <ActionRow icon="close-circle-outline" label="Close packet intel" onPress={() => setSelectedPacket(null)} />
             </Pressable>
           </Pressable>
         </Modal>
@@ -619,6 +587,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     backgroundColor: "rgba(0, 0, 0, 0.62)"
   },
+  intelBackdrop: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.lg,
+    backgroundColor: "rgba(0, 0, 0, 0.66)"
+  },
   actionSheet: {
     margin: spacing.md,
     borderRadius: radii.lg,
@@ -627,6 +602,26 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(8, 18, 19, 0.98)",
     padding: spacing.lg,
     gap: 10
+  },
+  intelSheet: {
+    width: "100%",
+    maxWidth: 760,
+    margin: 0
+  },
+  intelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  closeIntelButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: "rgba(216, 232, 198, 0.04)"
   },
   toolGrid: {
     flexDirection: "row",
