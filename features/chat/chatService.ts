@@ -1,6 +1,12 @@
 import { supabase } from "@/lib/supabase";
 import { canSendMessage } from "@/lib/antiSpam";
-import { decryptBlobForConversation, decryptTextForConversation, encryptBlobForConversation, encryptTextForConversation } from "@/lib/cryptoPayload";
+import {
+  decryptBlobForConversation,
+  decryptTextForConversation,
+  encryptBlobForConversation,
+  encryptLegacyTextForConversation,
+  encryptTextForConversation
+} from "@/lib/cryptoPayload";
 import { deriveConversationSharedKey } from "@/lib/e2ee";
 import { sanitizeMessage } from "@/lib/validation";
 import type { ChatPreview, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
@@ -110,9 +116,13 @@ export async function sendMessage(conversationId: string, senderId: string, payl
     created_at: new Date().toISOString()
   };
 
-  const sharedKey = await requireConversationSharedKey(conversationId, senderId);
-  const encryptedBody = encryptTextForConversation(clean, sharedKey);
-  const encryptedLocationLabel = payload.locationLabel ? encryptTextForConversation(payload.locationLabel, sharedKey) : null;
+  const sharedKey = await resolveConversationSharedKey(conversationId, senderId);
+  const encryptedBody = sharedKey ? encryptTextForConversation(clean, sharedKey) : encryptLegacyTextForConversation(clean, conversationId);
+  const encryptedLocationLabel = payload.locationLabel
+    ? sharedKey
+      ? encryptTextForConversation(payload.locationLabel, sharedKey)
+      : encryptLegacyTextForConversation(payload.locationLabel, conversationId)
+    : null;
 
   const { data, error } = await supabase
     .from("messages")
@@ -387,6 +397,14 @@ async function requireConversationSharedKey(conversationId: string, currentUserI
   }
 
   return deriveConversationSharedKey(currentUserId, peer.e2ee_public_key, conversationId);
+}
+
+async function resolveConversationSharedKey(conversationId: string, currentUserId: string) {
+  try {
+    return await requireConversationSharedKey(conversationId, currentUserId);
+  } catch {
+    return null;
+  }
 }
 
 function blobToDataUri(blob: Blob) {

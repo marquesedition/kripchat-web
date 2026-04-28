@@ -1,7 +1,7 @@
 import { sendMessage } from "@/features/chat/chatService";
 import { supabase } from "@/lib/supabase";
 import { canSendMessage } from "@/lib/antiSpam";
-import { encryptTextForConversation } from "@/lib/cryptoPayload";
+import { encryptLegacyTextForConversation, encryptTextForConversation } from "@/lib/cryptoPayload";
 import { deriveConversationSharedKey } from "@/lib/e2ee";
 
 jest.mock("@/lib/antiSpam", () => ({
@@ -12,6 +12,7 @@ jest.mock("@/lib/cryptoPayload", () => ({
   decryptBlobForConversation: jest.fn(),
   decryptTextForConversation: jest.fn((value: string) => value),
   encryptBlobForConversation: jest.fn(),
+  encryptLegacyTextForConversation: jest.fn((value: string) => `legacy:${value}`),
   encryptTextForConversation: jest.fn((value: string) => `enc:${value}`)
 }));
 
@@ -150,11 +151,11 @@ describe("sendMessage payloads by message kind", () => {
     );
   });
 
-  it("rejects when peer E2EE key is not available", async () => {
+  it("falls back to legacy payload encryption when peer E2EE key is not available", async () => {
     setupSupabase(null);
-    await expect(sendMessage("conversation-1", "user-1", { body: "hello", kind: "text" }, "client-9")).rejects.toThrow(
-      "The other user has not published an E2EE key yet. Ask them to sign in again to complete secure setup."
-    );
+    await sendMessage("conversation-1", "user-1", { body: "hello", kind: "text" }, "client-9");
+    expect(insertPayloads[0].body).toBe("legacy:hello");
+    expect(encryptLegacyTextForConversation).toHaveBeenCalledWith("hello", "conversation-1");
   });
 
   it("uses encryption helper to protect payload body", async () => {
