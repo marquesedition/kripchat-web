@@ -197,6 +197,8 @@ export async function createDecryptedAttachmentUrl(path: string, conversationId:
 }
 
 export async function decryptMessageRecord(message: Message, currentUserId: string, peerPublicKey?: string | null): Promise<Message> {
+  const encryptedBody = message.body;
+  const encryptedLocationLabel = message.location_label;
   let sharedKey: Uint8Array | null = null;
   if (peerPublicKey) {
     try {
@@ -208,7 +210,9 @@ export async function decryptMessageRecord(message: Message, currentUserId: stri
   return {
     ...message,
     body: decryptTextForConversation(message.body, message.conversation_id, sharedKey),
-    location_label: message.location_label ? decryptTextForConversation(message.location_label, message.conversation_id, sharedKey) : null
+    encrypted_body: encryptedBody,
+    location_label: message.location_label ? decryptTextForConversation(message.location_label, message.conversation_id, sharedKey) : null,
+    encrypted_location_label: encryptedLocationLabel
   };
 }
 

@@ -23,6 +23,7 @@ export type Message = {
   conversation_id: string;
   sender_id: string;
   body: string;
+  encrypted_body?: string | null;
   client_id: string | null;
   status: MessageStatus;
   kind: MessageKind;
@@ -33,6 +34,7 @@ export type Message = {
   location_lat: number | null;
   location_lng: number | null;
   location_label: string | null;
+  encrypted_location_label?: string | null;
   created_at: string;
 };
 

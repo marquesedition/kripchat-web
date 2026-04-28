@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
@@ -42,6 +42,7 @@ export default function ChatScreen() {
   const [draft, setDraft] = useState("");
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set());
   const [selectedPacket, setSelectedPacket] = useState<SelectedPacket>(null);
+  const [packetManifest, setPacketManifest] = useState<SelectedPacket>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [desiredLocationOpen, setDesiredLocationOpen] = useState(false);
@@ -244,6 +245,36 @@ export default function ChatScreen() {
     );
   }
 
+  function openPacketManifest() {
+    if (!selectedPacket) return;
+    setPacketManifest(selectedPacket);
+    setSelectedPacket(null);
+  }
+
+  function buildPacketManifest(message: Message) {
+    return {
+      id: message.id,
+      conversation_id: message.conversation_id,
+      sender_id: message.sender_id,
+      body: message.encrypted_body ?? message.body,
+      client_id: message.client_id,
+      status: message.status,
+      created_at: message.created_at,
+      kind: message.kind,
+      attachment_path: message.attachment_path,
+      attachment_name: message.attachment_name,
+      attachment_mime: message.attachment_mime,
+      attachment_size: message.attachment_size,
+      location_lat: message.location_lat,
+      location_lng: message.location_lng,
+      location_label: message.encrypted_location_label ?? message.location_label
+    };
+  }
+
+  function formatPacketManifest(message: Message) {
+    return JSON.stringify(buildPacketManifest(message), null, 2);
+  }
+
   async function reloadThread() {
     if (!conversationId || !userId) return;
     setSecurityOpen(false);
@@ -329,9 +360,33 @@ export default function ChatScreen() {
               <View style={styles.sheetHandle} />
               <Text style={styles.sheetTitle}>PACKET ACTIONS</Text>
               <ActionRow icon="copy-outline" label="Copy decrypted text" onPress={() => selectedPacket && copyText(selectedPacket.message.body, "Decrypted text")} />
-              <ActionRow icon="barcode-outline" label="Copy encrypted packet" onPress={() => selectedPacket && copyText(selectedPacket.cipherText, "Encrypted packet")} />
+              <ActionRow
+                icon="barcode-outline"
+                label="Copy encrypted packet"
+                onPress={() => selectedPacket && copyText(selectedPacket.message.encrypted_body ?? selectedPacket.cipherText, "Encrypted packet")}
+              />
               <ActionRow icon="analytics-outline" label="View packet intel" onPress={showPacketIntel} />
+              <ActionRow icon="document-text-outline" label="Open packet dossier" onPress={openPacketManifest} />
               <ActionRow icon="eye-off-outline" label="Hide on this device" danger onPress={hideSelectedPacket} />
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal visible={packetManifest !== null} transparent animationType="fade" onRequestClose={() => setPacketManifest(null)}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setPacketManifest(null)}>
+            <Pressable style={styles.actionSheet}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>PACKET DOSSIER</Text>
+              <ScrollView style={styles.dossierBox} contentContainerStyle={styles.dossierContent}>
+                <Text style={styles.dossierText}>
+                  {packetManifest ? formatPacketManifest(packetManifest.message) : ""}
+                </Text>
+              </ScrollView>
+              <ActionRow
+                icon="copy-outline"
+                label="Copy packet dossier JSON"
+                onPress={() => packetManifest && copyText(formatPacketManifest(packetManifest.message), "Packet dossier")}
+              />
             </Pressable>
           </Pressable>
         </Modal>
@@ -740,5 +795,21 @@ const styles = StyleSheet.create({
   },
   actionLabelDanger: {
     color: colors.danger
+  },
+  dossierBox: {
+    maxHeight: 320,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(156, 194, 178, 0.14)",
+    backgroundColor: "rgba(3, 7, 10, 0.9)"
+  },
+  dossierContent: {
+    padding: 12
+  },
+  dossierText: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    lineHeight: 17
   }
 });
