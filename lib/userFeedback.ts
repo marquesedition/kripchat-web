@@ -6,6 +6,28 @@ type ErrorShape = {
   status?: unknown;
 };
 
+const SUPABASE_CODE_MESSAGES: Record<string, string> = {
+  anonymous_provider_disabled: "El acceso anónimo está desactivado en Supabase.",
+  email_address_invalid: "El email no es válido para registro. Usa una dirección real.",
+  email_address_not_authorized: "Ese email no está autorizado con el proveedor SMTP actual.",
+  email_exists: "Ese email ya está registrado.",
+  email_not_confirmed: "Debes confirmar tu email para continuar. Revisa tu bandeja de entrada y vuelve a intentarlo.",
+  email_provider_disabled: "El registro por email está desactivado en Supabase.",
+  invalid_credentials: "Credenciales incorrectas. Revisa email y contraseña.",
+  over_email_send_rate_limit: "Has alcanzado el límite de envío de emails. Espera unos minutos antes de volver a registrarte.",
+  over_request_rate_limit: "Demasiadas solicitudes desde este dispositivo o red. Espera unos minutos e inténtalo de nuevo.",
+  request_timeout: "La solicitud tardó demasiado. Inténtalo de nuevo.",
+  refresh_token_already_used: "Tu sesión ya no es válida. Inicia sesión de nuevo.",
+  refresh_token_not_found: "Tu sesión no existe o fue cerrada. Inicia sesión de nuevo.",
+  same_password: "La nueva contraseña debe ser diferente a la actual.",
+  session_expired: "Tu sesión expiró. Vuelve a iniciar sesión.",
+  session_not_found: "Tu sesión ya no existe. Vuelve a iniciar sesión.",
+  signup_disabled: "El registro de nuevas cuentas está desactivado temporalmente.",
+  weak_password: "La contraseña no cumple los requisitos de seguridad.",
+  pgrst202: "Falta una función SQL esperada por la app en Supabase.",
+  pgrst204: "Falta una columna o recurso del esquema en Supabase."
+};
+
 function errorText(error: unknown) {
   if (!error) return "";
   if (typeof error === "string") return error;
@@ -59,12 +81,21 @@ export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo
   const status = errorStatus(error);
   const normalized = text.toLowerCase();
 
-  if (code === "email_not_confirmed" || normalized.includes("email not confirmed")) {
-    return withErrorDetail("Debes confirmar tu email para continuar. Revisa tu bandeja de entrada y vuelve a intentarlo.", text);
+  if (code && SUPABASE_CODE_MESSAGES[code]) {
+    if (code === "over_email_send_rate_limit") return SUPABASE_CODE_MESSAGES[code];
+    return withErrorDetail(SUPABASE_CODE_MESSAGES[code], text);
   }
 
-  if (code === "over_email_send_rate_limit" || normalized.includes("email rate limit exceeded")) {
+  if (normalized.includes("email rate limit exceeded")) {
     return "Has alcanzado el límite de envío de emails. Espera unos minutos antes de volver a registrarte.";
+  }
+
+  if (normalized.includes("email not confirmed")) {
+    return withErrorDetail(SUPABASE_CODE_MESSAGES.email_not_confirmed, text);
+  }
+
+  if (normalized.includes("invalid login credentials")) {
+    return withErrorDetail("Credenciales incorrectas. Revisa email y contraseña.", text);
   }
 
   if (isSessionIssue(text, code) || status === "401") {

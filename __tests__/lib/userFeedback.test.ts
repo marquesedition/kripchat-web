@@ -13,6 +13,33 @@ describe("user feedback error mapping", () => {
     );
   });
 
+  it("maps invalid login credentials", () => {
+    expect(getUserFacingErrorMessage({ code: "invalid_credentials", message: "Invalid login credentials" })).toContain(
+      "Credenciales incorrectas. Revisa email y contraseña."
+    );
+    expect(getUserFacingErrorMessage({ code: "invalid_credentials", message: "Invalid login credentials" })).toContain(
+      "Detalle: Invalid login credentials"
+    );
+  });
+
+  it("maps common Supabase auth codes", () => {
+    expect(getUserFacingErrorMessage({ code: "email_exists", message: "Email address already exists in the system." })).toContain(
+      "Ese email ya está registrado."
+    );
+    expect(getUserFacingErrorMessage({ code: "signup_disabled", message: "Sign ups are disabled on the server." })).toContain(
+      "El registro de nuevas cuentas está desactivado temporalmente."
+    );
+  });
+
+  it("maps PostgREST schema cache errors", () => {
+    expect(
+      getUserFacingErrorMessage({
+        code: "PGRST204",
+        message: "Could not find the 'e2ee_public_key' column of 'profiles' in the schema cache"
+      })
+    ).toContain("Falta una columna o recurso del esquema en Supabase.");
+  });
+
   it("maps session problems by status or message", () => {
     expect(getUserFacingErrorMessage({ status: 401, message: "Unauthorized" })).toContain(
       "Tu sesión expiró o no es válida. Vuelve a iniciar sesión."
