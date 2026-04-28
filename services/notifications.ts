@@ -56,6 +56,40 @@ export async function registerForPushNotifications() {
   return token.data;
 }
 
+export function isBrowserNotificationSupported() {
+  return Platform.OS === "web" && typeof window !== "undefined" && "Notification" in window;
+}
+
+export async function requestBrowserNotificationPermission() {
+  if (!isBrowserNotificationSupported()) return null;
+
+  if (Notification.permission === "granted") return "granted";
+  if (Notification.permission === "denied") return "denied";
+
+  return Notification.requestPermission();
+}
+
+export function getBrowserNotificationPermission() {
+  if (!isBrowserNotificationSupported()) return "unsupported";
+  return Notification.permission;
+}
+
+export function showBrowserMessageNotification(input: { title: string; body: string; conversationId: string }) {
+  if (!isBrowserNotificationSupported() || Notification.permission !== "granted") return;
+
+  const notification = new Notification(input.title, {
+    body: input.body,
+    tag: `kripchat:${input.conversationId}`,
+    data: { conversationId: input.conversationId },
+    requireInteraction: false
+  });
+
+  notification.onclick = () => {
+    window.focus();
+    window.location.assign(`/chat/${input.conversationId}`);
+  };
+}
+
 export function listenForNotificationResponses(onOpenConversation: (conversationId: string) => void) {
   if (Platform.OS === "web") return { remove: () => undefined };
 

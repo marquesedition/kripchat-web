@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { normalizeUsername } from "@/lib/validation";
+import { showBrowserMessageNotification } from "@/services/notifications";
 
 export default function ChatListScreen() {
   const userId = useAuthStore((state) => state.session?.user.id);
@@ -45,9 +46,21 @@ export default function ChatListScreen() {
       }, 250);
     };
 
+    const handleIncomingMessage = (payload: { new: { conversation_id?: string; sender_id?: string; kind?: string } }) => {
+      scheduleRefresh();
+      const message = payload.new;
+      if (!message.conversation_id || message.sender_id === userId) return;
+
+      showBrowserMessageNotification({
+        title: "KripChat",
+        body: message.kind === "text" ? "Nuevo paquete seguro recibido." : "Nuevo adjunto seguro recibido.",
+        conversationId: message.conversation_id
+      });
+    };
+
     const channel = supabase
       .channel(`inbox:${userId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, scheduleRefresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, handleIncomingMessage)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversation_participants" }, scheduleRefresh)
       .subscribe();
 

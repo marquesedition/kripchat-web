@@ -13,6 +13,7 @@ import {
 } from "@/features/chat/chatService";
 import type { ChatPreview, Message } from "@/features/chat/types";
 import { supabase } from "@/lib/supabase";
+import { showBrowserMessageNotification } from "@/services/notifications";
 
 type ChatState = {
   previews: ChatPreview[];
@@ -168,6 +169,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
         },
         async (payload) => {
           const next = await decryptMessageRecord(payload.new as Message, userId);
+          if (next.sender_id !== userId) {
+            showBrowserMessageNotification({
+              title: "KripChat",
+              body: next.kind === "text" ? "Nuevo paquete seguro recibido." : "Nuevo adjunto seguro recibido.",
+              conversationId
+            });
+          }
           set((state) => ({
             messagesByConversation: {
               ...state.messagesByConversation,

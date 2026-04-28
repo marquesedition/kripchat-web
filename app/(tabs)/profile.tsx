@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Avatar } from "@/components/Avatar";
 import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
@@ -8,7 +8,7 @@ import { useAuthStore } from "@/features/auth/authStore";
 import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { normalizeUsername } from "@/lib/validation";
-import { registerForPushNotifications } from "@/services/notifications";
+import { getBrowserNotificationPermission, registerForPushNotifications, requestBrowserNotificationPermission } from "@/services/notifications";
 
 export default function ProfileScreen() {
   const profile = useAuthStore((state) => state.profile);
@@ -17,6 +17,7 @@ export default function ProfileScreen() {
   const [username, setUsername] = useState(profile?.username ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
   const presenceLabel = profile?.online_at ? "PRESENCE SYNCED" : "PRESENCE STANDBY";
+  const browserNotificationPermission = Platform.OS === "web" ? getBrowserNotificationPermission() : "unsupported";
 
   useEffect(() => {
     setUsername(profile?.username ?? "");
@@ -36,6 +37,21 @@ export default function ProfileScreen() {
     } catch (error) {
       Alert.alert("Update failed", getUserFacingErrorMessage(error, "Unable to update profile."));
     }
+  }
+
+  async function enableWebNotifications() {
+    const permission = await requestBrowserNotificationPermission();
+    if (permission === "granted") {
+      Alert.alert("Notificaciones activadas", "Este navegador puede mostrar avisos mientras KripChat este abierto.");
+      return;
+    }
+
+    if (permission === "denied") {
+      Alert.alert("Permiso bloqueado", "Activa las notificaciones desde la configuracion del navegador para este sitio.");
+      return;
+    }
+
+    Alert.alert("No disponible", "Este navegador no soporta notificaciones web en este modo.");
   }
 
   return (
@@ -85,6 +101,14 @@ export default function ProfileScreen() {
 
             <View style={styles.actions}>
               <GlassButton label="Sign out" variant="danger" onPress={signOut} style={styles.secondaryAction} />
+              {Platform.OS === "web" ? (
+                <GlassButton
+                  label={browserNotificationPermission === "granted" ? "Notifications on" : "Enable notifications"}
+                  onPress={enableWebNotifications}
+                  style={styles.primaryAction}
+                  variant={browserNotificationPermission === "granted" ? "ghost" : "primary"}
+                />
+              ) : null}
               <GlassButton label="Save profile" onPress={save} style={styles.primaryAction} />
             </View>
           </GlassCard>
