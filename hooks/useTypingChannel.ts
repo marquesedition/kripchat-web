@@ -10,7 +10,8 @@ export function useTypingChannel(conversationId: string, userId?: string | null)
   useEffect(() => {
     if (!conversationId || conversationId === "pending") return undefined;
 
-    const channel = supabase.channel(`typing:${conversationId}:${userId ?? "anonymous"}`, {
+    // Every participant must join the exact same channel per conversation.
+    const channel = supabase.channel(`typing:${conversationId}`, {
       config: { broadcast: { self: false } }
     });
     channelRef.current = channel;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Modal, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/features/auth/authStore";
 import { useChatStore } from "@/features/chat/chatStore";
+import { supabase } from "@/lib/supabase";
 import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { normalizeUsername } from "@/lib/validation";
@@ -20,6 +21,7 @@ export default function ChatListScreen() {
   const openDirect = useChatStore((state) => state.openDirect);
   const [modalOpen, setModalOpen] = useState(false);
   const [username, setUsername] = useState("");
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inboxStatus = loading ? "Refreshing secure channels" : "Encrypted inbox ready";
   const syncStatus = previews.some((item) => item.peerOnline) ? "Presence synced" : "Waiting for live presence";
 
@@ -32,6 +34,29 @@ export default function ChatListScreen() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!userId) return undefined;
+
+    const scheduleRefresh = () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        loadPreviews(userId).catch(() => undefined);
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`inbox:${userId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, scheduleRefresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversation_participants" }, scheduleRefresh)
+      .subscribe();
+
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+      supabase.removeChannel(channel);
+    };
+  }, [loadPreviews, userId]);
 
   async function createChat() {
     if (!userId) return;
