@@ -46,6 +46,13 @@ function isSessionIssue(text: string, code: string) {
   );
 }
 
+function withErrorDetail(userMessage: string, rawText: string) {
+  const detail = rawText.trim();
+  if (!detail) return userMessage;
+  if (userMessage.toLowerCase().includes(detail.toLowerCase())) return userMessage;
+  return `${userMessage}\n\nDetalle: ${detail}`;
+}
+
 export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo completar la operación. Inténtalo de nuevo.") {
   const text = errorText(error);
   const code = errorCode(error);
@@ -53,43 +60,47 @@ export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo
   const normalized = text.toLowerCase();
 
   if (code === "email_not_confirmed" || normalized.includes("email not confirmed")) {
-    return "Debes confirmar tu email para continuar. Revisa tu bandeja de entrada y vuelve a intentarlo.";
+    return withErrorDetail("Debes confirmar tu email para continuar. Revisa tu bandeja de entrada y vuelve a intentarlo.", text);
+  }
+
+  if (code === "over_email_send_rate_limit" || normalized.includes("email rate limit exceeded")) {
+    return "Has alcanzado el límite de envío de emails. Espera unos minutos antes de volver a registrarte.";
   }
 
   if (isSessionIssue(text, code) || status === "401") {
-    return "Tu sesión expiró o no es válida. Vuelve a iniciar sesión.";
+    return withErrorDetail("Tu sesión expiró o no es válida. Vuelve a iniciar sesión.", text);
   }
 
   if (isNetworkIssue(text)) {
-    return "Problema de red. Revisa tu conexión e inténtalo de nuevo.";
+    return withErrorDetail("Problema de red. Revisa tu conexión e inténtalo de nuevo.", text);
   }
 
   if (code === "42501" || status === "403" || normalized.includes("row-level security") || normalized.includes("permission denied")) {
-    return "No tienes permisos para esta acción con la sesión actual.";
+    return withErrorDetail("No tienes permisos para esta acción con la sesión actual.", text);
   }
 
   if (code === "429" || status === "429" || normalized.includes("too many requests")) {
-    return "Hay demasiadas solicitudes. Espera unos segundos e inténtalo de nuevo.";
+    return withErrorDetail("Hay demasiadas solicitudes. Espera unos segundos e inténtalo de nuevo.", text);
   }
 
   if (normalized.includes("no profile found for that username")) {
-    return "No encontramos ese usuario. Revisa el nombre e inténtalo de nuevo.";
+    return withErrorDetail("No encontramos ese usuario. Revisa el nombre e inténtalo de nuevo.", text);
   }
 
   if (normalized.includes("slow down before sending another packet")) {
-    return "Estás enviando mensajes muy rápido. Espera unos segundos.";
+    return withErrorDetail("Estás enviando mensajes muy rápido. Espera unos segundos.", text);
   }
 
   if (normalized.includes("message is empty")) {
-    return "El mensaje está vacío.";
+    return withErrorDetail("El mensaje está vacío.", text);
   }
 
   if (normalized.includes("the other user has not published an e2ee key yet")) {
-    return "El otro usuario todavía no completó su configuración segura. Pídele que cierre y abra sesión.";
+    return withErrorDetail("El otro usuario todavía no completó su configuración segura. Pídele que cierre y abra sesión.", text);
   }
 
   if (normalized.includes("unable to download encrypted payload")) {
-    return "No se pudo descargar el adjunto cifrado. Inténtalo de nuevo.";
+    return withErrorDetail("No se pudo descargar el adjunto cifrado. Inténtalo de nuevo.", text);
   }
 
   const trimmed = text.trim();
