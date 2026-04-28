@@ -282,6 +282,10 @@ export async function updatePresence(userId: string) {
   await supabase.from("profiles").update({ online_at: new Date().toISOString() }).eq("id", userId);
 }
 
+export async function clearPresence(userId: string) {
+  await supabase.from("profiles").update({ online_at: null }).eq("id", userId);
+}
+
 function isOnline(value?: string | null) {
   if (!value) return false;
   return Date.now() - new Date(value).getTime() < 90_000;

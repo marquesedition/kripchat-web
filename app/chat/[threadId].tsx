@@ -13,6 +13,7 @@ import { useAuthStore } from "@/features/auth/authStore";
 import { useChatStore } from "@/features/chat/chatStore";
 import type { Message, MessageKind } from "@/features/chat/types";
 import { useTypingChannel } from "@/hooks/useTypingChannel";
+import { usePresence } from "@/hooks/usePresence";
 import { formatOpsCode, formatShortId } from "@/lib/opsIdentity";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { getUserFacingErrorMessage } from "@/lib/userFeedback";
@@ -51,6 +52,7 @@ export default function ChatScreen() {
   const [visibilitySeconds, setVisibilitySeconds] = useState(10);
   const listRef = useRef<FlatList>(null);
   const { typingUserIds, broadcastTyping } = useTypingChannel(conversationId ?? "pending", userId);
+  usePresence(userId, Boolean(conversationId));
 
   const peer = useMemo(() => previews.find((item) => item.conversation.id === conversationId)?.peer, [conversationId, previews]);
   const peerCode = formatOpsCode(peer?.username);
