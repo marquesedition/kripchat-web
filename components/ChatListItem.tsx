@@ -42,12 +42,12 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    minHeight: 82,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(184, 215, 197, 0.08)",
+    gap: 12,
+    minHeight: 84,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     backgroundColor: colors.row
   },
   content: {
@@ -63,14 +63,14 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 16,
+    fontWeight: "700",
     flex: 1
   },
   time: {
     color: colors.faint,
     fontFamily: fonts.mono,
-    fontSize: 10,
+    fontSize: 11,
     textTransform: "uppercase"
   },
   statusGroup: {
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     gap: 7
   },
   statusDot: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 4
   },
   onlineDot: {
@@ -98,7 +98,6 @@ const styles = StyleSheet.create({
   preview: {
     marginTop: 4,
     color: colors.muted,
-    fontFamily: fonts.mono,
-    fontSize: 13
+    fontSize: 14
   }
 });

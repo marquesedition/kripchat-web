@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { isEmailNotConfirmedError } from "@/features/auth/authService";
 import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { useAuthStore } from "@/features/auth/authStore";
-import { colors, radii, spacing } from "@/lib/theme";
+import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { isValidEmail } from "@/lib/validation";
 
@@ -60,9 +61,12 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.wrap}>
         <View style={styles.panel}>
           <View style={styles.header}>
+            <View style={styles.logoBadge}>
+              <Ionicons name="shield-checkmark" size={26} color={colors.green} />
+            </View>
             <Text style={styles.kicker}>KRIPCHAT</Text>
-            <Text style={styles.title}>Private chat for your team.</Text>
-            <Text style={styles.subtitle}>Sign in to message users, share files, and manage your profile.</Text>
+            <Text style={styles.title}>Secure Channel Authentication</Text>
+            <Text style={styles.subtitle}>Sign in to access encrypted channels.</Text>
           </View>
 
           <GlassCard style={styles.card}>
@@ -92,11 +96,12 @@ export default function LoginScreen() {
               <GlassButton label={loading ? "Authenticating..." : "Enter"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
               <Link href="/(auth)/register" asChild>
                 <Pressable style={styles.linkButton}>
-                  <Text style={styles.linkText}>Need a handle? Register</Text>
+                  <Text style={styles.linkText}>Create Secure Account</Text>
                 </Pressable>
               </Link>
             </View>
           </GlassCard>
+          <Text style={styles.footerText}>E2EE PROTOCOL ACTIVE</Text>
         </View>
       </KeyboardAvoidingView>
     </ScreenShell>
@@ -118,23 +123,37 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: spacing.lg
   },
+  logoBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(60,255,107,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14
+  },
   kicker: {
     color: colors.green,
+    fontFamily: fonts.mono,
     fontWeight: "900",
-    letterSpacing: 0,
+    fontSize: 11,
+    letterSpacing: 0.5,
     marginBottom: 10
   },
   title: {
     color: colors.text,
-    fontSize: 38,
-    lineHeight: 42,
-    fontWeight: "900"
+    fontFamily: fonts.mono,
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: "700"
   },
   subtitle: {
     color: colors.muted,
     marginTop: 12,
-    fontSize: 15,
-    lineHeight: 22
+    fontSize: 14,
+    lineHeight: 20
   },
   card: {
     padding: spacing.lg,
@@ -150,9 +169,9 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 54,
     borderRadius: radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: colors.panel,
     color: colors.text,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -168,5 +187,12 @@ const styles = StyleSheet.create({
   linkText: {
     color: colors.blue,
     fontWeight: "700"
+  },
+  footerText: {
+    color: colors.faint,
+    fontFamily: fonts.mono,
+    marginTop: spacing.md,
+    textAlign: "center",
+    fontSize: 11
   }
 });

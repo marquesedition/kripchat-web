@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Link, router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/features/auth/authStore";
 import { getUserFacingErrorMessage } from "@/lib/userFeedback";
-import { colors, radii, spacing } from "@/lib/theme";
+import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { isValidEmail, isValidPassword, isValidUsername, normalizeUsername } from "@/lib/validation";
 
@@ -42,7 +43,13 @@ export default function RegisterScreen() {
     <ScreenShell>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.wrap}>
         <View style={styles.panel}>
-          <Text style={styles.title}>Create your secure handle.</Text>
+          <View style={styles.header}>
+            <View style={styles.logoBadge}>
+              <Ionicons name="key-outline" size={24} color={colors.green} />
+            </View>
+            <Text style={styles.kicker}>NEW OPERATIVE</Text>
+            <Text style={styles.title}>Create Secure Account</Text>
+          </View>
           <GlassCard style={styles.card}>
             <View style={styles.inputStack}>
               <TextInput
@@ -102,12 +109,33 @@ const styles = StyleSheet.create({
     maxWidth: 640,
     alignSelf: "center"
   },
+  header: {
+    marginBottom: spacing.lg
+  },
+  logoBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(60,255,107,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12
+  },
+  kicker: {
+    color: colors.green,
+    fontFamily: fonts.mono,
+    fontWeight: "900",
+    fontSize: 11,
+    marginBottom: 8
+  },
   title: {
     color: colors.text,
-    fontSize: 34,
-    lineHeight: 39,
-    fontWeight: "900",
-    marginBottom: spacing.lg
+    fontFamily: fonts.mono,
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: "700"
   },
   card: {
     padding: spacing.lg,
@@ -123,9 +151,9 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 54,
     borderRadius: radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: colors.panel,
     color: colors.text,
     paddingHorizontal: 16,
     paddingVertical: 12,

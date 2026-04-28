@@ -1,7 +1,6 @@
 import { PropsWithChildren } from "react";
-import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
+import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import { colors, radii } from "@/lib/theme";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -33,22 +32,17 @@ export function GlassButton({ children, label, disabled, variant = "primary", st
       }}
       style={[styles.pressable, disabled && styles.disabled, animatedStyle, style]}
     >
-      <LinearGradient
-        colors={getGradient(variant)}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.fill, variant === "ghost" && styles.ghost]}
-      >
+      <View style={[styles.fill, getFillStyle(variant), variant === "ghost" && styles.ghost]}>
         {children ?? <Text style={[styles.label, variant === "danger" && styles.dangerLabel]}>{label}</Text>}
-      </LinearGradient>
+      </View>
     </AnimatedPressable>
   );
 }
 
-function getGradient(variant: Props["variant"]) {
-  if (variant === "danger") return ["rgba(116, 43, 56, 0.96)", "rgba(81, 34, 45, 0.92)"] as const;
-  if (variant === "ghost") return ["rgba(216, 232, 198, 0.035)", "rgba(120, 213, 188, 0.055)"] as const;
-  return ["rgba(216, 232, 198, 0.96)", "rgba(120, 213, 188, 0.72)"] as const;
+function getFillStyle(variant: Props["variant"]) {
+  if (variant === "danger") return styles.fillDanger;
+  if (variant === "ghost") return styles.fillGhost;
+  return styles.fillPrimary;
 }
 
 const styles = StyleSheet.create({
@@ -56,8 +50,8 @@ const styles = StyleSheet.create({
     minHeight: 46,
     borderRadius: radii.md,
     overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong
+    borderWidth: 1,
+    borderColor: colors.border
   },
   fill: {
     minHeight: 46,
@@ -66,19 +60,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: radii.md
   },
+  fillPrimary: {
+    backgroundColor: colors.green
+  },
+  fillDanger: {
+    backgroundColor: colors.danger
+  },
+  fillGhost: {
+    backgroundColor: "transparent"
+  },
   ghost: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong
+    borderWidth: 1,
+    borderColor: colors.border
   },
   disabled: {
     opacity: 0.45
   },
   label: {
-    color: "#02110d",
-    fontWeight: "900",
-    fontSize: 13
+    color: colors.bg,
+    fontWeight: "700",
+    fontSize: 14
   },
   dangerLabel: {
-    color: colors.text
+    color: "#fff"
   }
 });

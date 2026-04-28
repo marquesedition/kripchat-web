@@ -1,23 +1,23 @@
 import { Platform, StyleSheet } from "react-native";
 
 export const colors = {
-  bg: "#061012",
-  bg2: "#0b181a",
-  surface: "rgba(16, 30, 31, 0.74)",
-  surfaceStrong: "rgba(25, 44, 43, 0.92)",
-  panel: "rgba(12, 24, 25, 0.86)",
-  row: "rgba(19, 36, 37, 0.78)",
-  rowActive: "rgba(121, 190, 172, 0.72)",
-  border: "rgba(156, 194, 178, 0.18)",
-  borderStrong: "rgba(174, 219, 197, 0.48)",
-  text: "#dbe8d4",
-  muted: "#91a99f",
-  faint: "#5f746f",
-  green: "#78d5bc",
-  blue: "#2a8494",
-  cream: "#dfe8c6",
-  danger: "#ff5370",
-  warning: "#d9d9a3"
+  bg: "#0d0f13",
+  bg2: "#16181d",
+  surface: "rgba(22, 24, 29, 0.92)",
+  surfaceStrong: "rgba(31, 35, 41, 0.98)",
+  panel: "rgba(26, 29, 35, 0.96)",
+  row: "rgba(22, 24, 29, 0.82)",
+  rowActive: "rgba(60, 255, 107, 0.10)",
+  border: "#2a2e36",
+  borderStrong: "rgba(60, 255, 107, 0.30)",
+  text: "#e8eaed",
+  muted: "#7d8590",
+  faint: "#4a5160",
+  green: "#3cff6b",
+  blue: "#4dabf7",
+  cream: "#e8eaed",
+  danger: "#ff4757",
+  warning: "#ffb84d"
 };
 
 export const spacing = {
@@ -29,9 +29,9 @@ export const spacing = {
 };
 
 export const radii = {
-  sm: 3,
-  md: 6,
-  lg: 10,
+  sm: 4,
+  md: 8,
+  lg: 12,
   pill: 999
 };
 
@@ -43,16 +43,16 @@ export const fonts = {
 export const shadows = StyleSheet.create({
   glow: {
     shadowColor: colors.green,
-    shadowOpacity: 0.22,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 10
-  },
-  depth: {
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 8
+  },
+  depth: {
+    shadowColor: "#000",
+    shadowOpacity: 0.42,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6
   }
 });

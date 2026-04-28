@@ -16,7 +16,7 @@ export function GlassCard({ children, style, interactive = false }: Props) {
     return (
       <GlassView
         glassEffectStyle="regular"
-        tintColor="rgba(14, 255, 198, 0.08)"
+        tintColor="rgba(60, 255, 107, 0.06)"
         isInteractive={interactive}
         style={glassStyle}
       >
@@ -35,14 +35,14 @@ export function GlassCard({ children, style, interactive = false }: Props) {
 const styles = StyleSheet.create({
   card: {
     overflow: "hidden",
-    borderRadius: radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.lg,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     ...shadows.depth
   },
   androidTint: {
     flex: 1,
-    backgroundColor: "rgba(7, 18, 24, 0.34)"
+    backgroundColor: "rgba(22, 24, 29, 0.68)"
   }
 });

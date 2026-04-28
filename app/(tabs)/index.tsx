@@ -23,7 +23,7 @@ export default function ChatListScreen() {
   const [username, setUsername] = useState("");
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inboxStatus = loading ? "Refreshing secure channels" : "Encrypted inbox ready";
-  const syncStatus = previews.some((item) => item.peerOnline) ? "Presence synced" : "Waiting for live presence";
+  const syncStatus = previews.some((item) => item.peerOnline) ? "Presence synced" : "No peers online";
 
   const refresh = useCallback(() => {
     if (userId) {
@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 24,
-    fontWeight: "900",
+    fontSize: 22,
+    fontWeight: "700",
     letterSpacing: 0
   },
   headerRule: {
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.cream
+    backgroundColor: colors.green
   },
   ghostIconButton: {
     width: 36,
@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(184, 215, 197, 0.08)"
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border
   },
   stripText: {
     flex: 1,
-    color: colors.faint,
+    color: colors.muted,
     fontFamily: fonts.mono,
     fontSize: 9,
     fontWeight: "800"

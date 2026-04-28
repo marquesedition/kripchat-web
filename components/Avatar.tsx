@@ -15,7 +15,7 @@ export function Avatar({ username, avatarUrl, size = 44, online }: Props) {
 
   return (
     <View style={{ width: size, height: size }}>
-      <LinearGradient colors={[colors.cream, colors.green]} style={[styles.ring, { borderRadius: size / 2 }]}>
+      <LinearGradient colors={["#20242b", "#1a1d23"]} style={[styles.ring, { borderRadius: size / 2 }]}>
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={[styles.image, { width: size - 4, height: size - 4, borderRadius: (size - 4) / 2 }]} />
         ) : (
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg2
   },
   initials: {
-    color: colors.cream,
+    color: colors.muted,
     fontFamily: fonts.mono,
     fontWeight: "800",
     letterSpacing: 0

@@ -12,13 +12,11 @@ export function ScreenShell({ children }: PropsWithChildren) {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={[colors.bg, "#0b1718", "#071112", "#020607"]}
-        locations={[0, 0.42, 0.75, 1]}
+        colors={[colors.bg, "#101319", "#0d0f13"]}
+        locations={[0, 0.56, 1]}
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.vignette} />
-      <View style={[styles.scanLine, styles.scanTop]} />
-      <View style={[styles.scanLine, styles.scanBottom]} />
       <SafeAreaView style={styles.safe}>
         <View style={styles.content}>{children}</View>
         {showWebFooter ? (
@@ -44,8 +42,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(156, 194, 178, 0.18)",
-    backgroundColor: "rgba(0, 0, 0, 0.24)",
+    borderTopColor: colors.border,
+    backgroundColor: "rgba(13, 15, 19, 0.86)",
     paddingHorizontal: 14,
     paddingVertical: 8,
     alignItems: "center"
@@ -58,21 +56,6 @@ const styles = StyleSheet.create({
   vignette: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 1,
-    borderColor: "rgba(190, 225, 205, 0.05)"
-  },
-  scanLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: colors.green,
-    opacity: 0.14
-  },
-  scanTop: {
-    top: 78
-  },
-  scanBottom: {
-    bottom: 90,
-    opacity: 0.08
+    borderColor: "rgba(255,255,255,0.03)"
   }
 });

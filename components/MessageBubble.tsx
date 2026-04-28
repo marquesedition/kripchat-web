@@ -308,17 +308,17 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingHorizontal: 18,
     paddingVertical: 15,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     minWidth: 150
   },
   mine: {
-    backgroundColor: "rgba(47, 123, 139, 0.78)",
-    borderColor: "rgba(142, 205, 201, 0.30)",
+    backgroundColor: "rgba(60, 255, 107, 0.10)",
+    borderColor: "rgba(60, 255, 107, 0.30)",
     borderTopRightRadius: 2
   },
   theirs: {
-    backgroundColor: "rgba(216, 227, 192, 0.90)",
-    borderColor: "rgba(240, 247, 216, 0.48)",
+    backgroundColor: colors.bg2,
+    borderColor: colors.border,
     borderTopLeftRadius: 2
   },
   body: {
@@ -354,9 +354,9 @@ const styles = StyleSheet.create({
     minWidth: 210,
     marginTop: 12,
     borderRadius: radii.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(53, 70, 64, 0.18)",
-    backgroundColor: "rgba(2, 6, 7, 0.10)",
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(31, 35, 41, 0.75)",
     paddingHorizontal: 11,
     paddingVertical: 10
   },
@@ -376,16 +376,16 @@ const styles = StyleSheet.create({
     marginTop: 3
   },
   mineBody: {
-    color: colors.cream
+    color: colors.text
   },
   theirBody: {
-    color: "#405047"
+    color: colors.text
   },
   cipherBody: {
-    color: "#354640"
+    color: colors.muted
   },
   mineCipherBody: {
-    color: "#bed4c5"
+    color: "#b9f7c9"
   },
   metaDeck: {
     flexDirection: "row",
@@ -400,8 +400,8 @@ const styles = StyleSheet.create({
   senderCode: {
     minWidth: 62,
     borderRadius: radii.pill,
-    backgroundColor: "rgba(216, 227, 192, 0.30)",
-    color: colors.cream,
+    backgroundColor: "rgba(31, 35, 41, 0.95)",
+    color: colors.text,
     fontFamily: fonts.mono,
     fontSize: 10,
     fontWeight: "900",
@@ -411,12 +411,12 @@ const styles = StyleSheet.create({
   },
   decryptPill: {
     borderRadius: radii.pill,
-    backgroundColor: colors.cream,
+    backgroundColor: colors.panel,
     paddingHorizontal: 12,
     paddingVertical: 4
   },
   decryptText: {
-    color: "#405047",
+    color: colors.text,
     fontFamily: fonts.mono,
     fontSize: 10,
     fontWeight: "900"

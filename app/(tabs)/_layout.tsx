@@ -16,12 +16,12 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: "rgba(3, 7, 10, 0.82)",
+          backgroundColor: "rgba(22, 24, 29, 0.95)",
           borderTopColor: colors.border,
           height: 72
         },
         tabBarActiveTintColor: colors.green,
-        tabBarInactiveTintColor: colors.faint,
+        tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontWeight: "700" }
       }}
     >
