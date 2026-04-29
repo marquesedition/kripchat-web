@@ -1,4 +1,11 @@
-import { isEmailNotConfirmedError, resolveEmailConfirmRedirectUrl, signInWithEmail, signOut, signUpWithEmail } from "@/features/auth/authService";
+import {
+  isEmailNotConfirmedError,
+  resolveEmailConfirmRedirectUrl,
+  signInWithEmail,
+  signOut,
+  signUpWithEmail,
+  SupabaseAuthApiError
+} from "@/features/auth/authService";
 import { ensureProvisionalE2EEIdentity } from "@/lib/e2ee";
 import { supabase } from "@/lib/supabase";
 
@@ -90,10 +97,25 @@ describe("authService sign-up and auth error helpers", () => {
   it("throws sign-in errors from Supabase", async () => {
     (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue({
       data: { session: null },
-      error: new Error("Invalid login credentials")
+      error: { code: "invalid_credentials", message: "Invalid login credentials", status: 400 }
     });
 
     await expect(signInWithEmail("agent@example.com", "bad-pass")).rejects.toThrow("Invalid login credentials");
+  });
+
+  it("preserves Supabase token endpoint code and message for UI observers", async () => {
+    (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue({
+      data: { session: null },
+      error: { code: "invalid_credentials", message: "Invalid login credentials", status: 400 }
+    });
+
+    await expect(signInWithEmail("agent@example.com", "bad-pass")).rejects.toMatchObject({
+      code: "invalid_credentials",
+      message: "Invalid login credentials",
+      status: 400,
+      endpoint: "/auth/v1/token?grant_type=password"
+    });
+    await expect(signInWithEmail("agent@example.com", "bad-pass")).rejects.toBeInstanceOf(SupabaseAuthApiError);
   });
 
   it("delegates sign-out to Supabase", async () => {
