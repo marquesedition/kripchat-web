@@ -1,4 +1,4 @@
-import { getUserFacingErrorMessage } from "@/lib/userFeedback";
+import { getApiErrorMessage, getUserFacingErrorMessage } from "@/lib/userFeedback";
 
 describe("user feedback error mapping", () => {
   it("returns email confirmation guidance", () => {
@@ -33,6 +33,12 @@ describe("user feedback error mapping", () => {
         }
       })
     ).toContain("Detalle: Invalid login credentials");
+  });
+
+  it("formats API code and message for inline UI observers", () => {
+    expect(getApiErrorMessage({ code: "invalid_credentials", message: "Invalid login credentials" })).toBe(
+      "[invalid_credentials] Invalid login credentials"
+    );
   });
 
   it("maps common Supabase auth codes", () => {
