@@ -6,7 +6,7 @@ import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { isEmailNotConfirmedError } from "@/features/auth/authService";
-import { getUserFacingErrorMessage } from "@/lib/userFeedback";
+import { getApiErrorMessage, getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { useAuthStore } from "@/features/auth/authStore";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -15,6 +15,7 @@ import { isValidEmail } from "@/lib/validation";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [apiMessage, setApiMessage] = useState("");
   const params = useLocalSearchParams<{ confirmed?: string; confirm_error?: string }>();
   const loading = useAuthStore((state) => state.loading);
   const signIn = useAuthStore((state) => state.signIn);
@@ -36,6 +37,7 @@ export default function LoginScreen() {
   }, [params.confirm_error, params.confirmed]);
 
   async function onSubmit() {
+    setApiMessage("");
     if (!isSupabaseConfigured) {
       Alert.alert("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment.");
       return;
@@ -48,6 +50,8 @@ export default function LoginScreen() {
       await signIn(email, password);
       router.replace("/(tabs)");
     } catch (error) {
+      const apiErrorMessage = getApiErrorMessage(error);
+      if (apiErrorMessage) setApiMessage(apiErrorMessage);
       if (isEmailNotConfirmedError(error)) {
         Alert.alert("Email confirmation required", "Confirma tu email desde el mensaje de Supabase y luego inicia sesión.");
         return;
@@ -78,7 +82,10 @@ export default function LoginScreen() {
                 placeholder="operator@email.com"
                 placeholderTextColor={colors.faint}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  if (apiMessage) setApiMessage("");
+                }}
                 style={styles.input}
               />
               <TextInput
@@ -88,10 +95,19 @@ export default function LoginScreen() {
                 placeholderTextColor={colors.faint}
                 secureTextEntry
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (apiMessage) setApiMessage("");
+                }}
                 style={styles.input}
               />
             </View>
+            {apiMessage ? (
+              <View style={styles.apiErrorBox}>
+                <Text style={styles.apiErrorLabel}>API MESSAGE</Text>
+                <Text style={styles.apiErrorText}>{apiMessage}</Text>
+              </View>
+            ) : null}
             <View style={styles.actionStack}>
               <GlassButton label={loading ? "Authenticating..." : "Enter"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
               <Link href="/(auth)/register" asChild>
@@ -165,6 +181,28 @@ const styles = StyleSheet.create({
   actionStack: {
     marginTop: spacing.lg,
     gap: 12
+  },
+  apiErrorBox: {
+    marginTop: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 107, 107, 0.55)",
+    backgroundColor: "rgba(255, 107, 107, 0.1)",
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  apiErrorLabel: {
+    color: "#ff8f8f",
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    fontWeight: "900",
+    marginBottom: 6
+  },
+  apiErrorText: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    lineHeight: 18
   },
   input: {
     minHeight: 54,

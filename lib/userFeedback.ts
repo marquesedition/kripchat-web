@@ -37,7 +37,7 @@ function readStringField(source: unknown, field: keyof ErrorShape) {
   return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
 
-function findApiErrorShape(error: unknown): ErrorShape | null {
+export function findApiErrorShape(error: unknown): ErrorShape | null {
   if (!error || typeof error !== "object") return null;
 
   const directCode = readStringField(error, "code");
@@ -58,6 +58,16 @@ function findApiErrorShape(error: unknown): ErrorShape | null {
 
   const nested = (error as ErrorShape).error ?? (error as ErrorShape).data ?? (error as ErrorShape).response;
   return findApiErrorShape(nested);
+}
+
+export function getApiErrorMessage(error: unknown) {
+  const apiError = findApiErrorShape(error);
+  const code = String(apiError?.code ?? "").trim();
+  const message = String(apiError?.message ?? "").trim();
+  const status = String(apiError?.status ?? "").trim();
+  if (!code && !message && !status) return "";
+  const prefix = code || status ? `[${code || status}] ` : "";
+  return `${prefix}${message || "Error de API"}`;
 }
 
 function errorText(error: unknown) {
