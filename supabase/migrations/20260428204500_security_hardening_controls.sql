@@ -119,6 +119,8 @@ select cron.schedule(
   $$select private.destroy_expired_conversations();$$
 );
 
+drop function if exists public.list_chat_previews();
+
 create or replace function public.list_chat_previews()
 returns table (
   conversation_id uuid,

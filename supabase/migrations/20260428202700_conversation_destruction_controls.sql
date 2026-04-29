@@ -69,6 +69,8 @@ $$;
 
 grant execute on function public.set_conversation_auto_destroy(uuid, integer) to authenticated;
 
+drop function if exists public.list_chat_previews();
+
 create or replace function public.list_chat_previews()
 returns table (
   conversation_id uuid,

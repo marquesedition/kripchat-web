@@ -9,6 +9,9 @@ KripChat is a secure, real-time mobile chat for hackers and security teams. It i
 - Realtime 1:1 conversations with optimistic message sending
 - Paginated message history and Supabase Realtime inserts
 - Typing indicator using Realtime broadcast channels
+- Device-oriented encrypted message architecture in `src/lib/supabase/messages.ts`
+- Multi-device public key registry in `devices` and `prekeys`
+- Blocking, archive, pin, mute, read receipt, disappearing message, and encrypted attachment foundations
 - Mobile-first Liquid Glass UI: iOS GlassEffect with Android BlurView fallback
 - Dark cybersecurity visual system with neon green/blue accents
 - MVP security: RLS policies, input validation, anti-spam send throttling, and an E2EE-ready data boundary
@@ -88,7 +91,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
 EXPO_PUBLIC_SITE_URL=https://kripchat.com
 ```
 
-4. Apply the Supabase migration in `supabase/migrations/202604220001_kripchat_schema.sql`.
+4. Apply all Supabase migrations in `supabase/migrations/`.
 
 5. Start Expo:
 
@@ -168,7 +171,45 @@ After the first successful production builds, you can submit them with EAS Submi
 
 ## Supabase Notes
 
-Enable Realtime for the `messages` table in Supabase so chat inserts arrive instantly. The migration creates RLS policies that only let authenticated conversation members read and send messages. User creation is handled by the `handle_new_user` trigger, which copies the registered username into `profiles`.
+Enable Realtime for `messages` and `encrypted_messages` so chat inserts arrive instantly. The migrations create RLS policies that only let authenticated conversation members read conversation metadata, and only recipient devices or senders read rows in `encrypted_messages`.
+
+The current app keeps the original UI wired to the legacy `messages` flow for compatibility, while the new device-encrypted architecture lives under `src/lib`. New work should prefer:
+
+- `src/lib/supabase/profiles.ts`
+- `src/lib/supabase/devices.ts`
+- `src/lib/supabase/conversations.ts`
+- `src/lib/supabase/messages.ts`
+- `src/lib/supabase/blocks.ts`
+- `src/lib/supabase/storage.ts`
+
+### Environment Variables
+
+```text
+EXPO_PUBLIC_SUPABASE_URL=
+EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_SITE_URL=
+```
+
+Do not hardcode Supabase credentials in source files.
+
+### Apply Migrations Without Docker
+
+This repo does not require Docker to apply migrations to a hosted Supabase project. Use either a direct Postgres connection string:
+
+```bash
+SUPABASE_DB_URL='postgresql://postgres...'
+npm run db:migrate:remote
+```
+
+Or authenticate/link the CLI and apply to the linked project:
+
+```bash
+npx supabase login
+npx supabase link --project-ref bmvbqmibvfsbkfkcdesv
+npm run db:migrate:linked
+```
+
+`SUPABASE_DB_URL` and `SUPABASE_ACCESS_TOKEN` are server-side secrets. Never prefix them with `EXPO_PUBLIC_`.
 
 ## Project Structure
 
@@ -179,10 +220,22 @@ features/auth/        Auth service and Zustand store
 features/chat/        Chat service, types, and Zustand store
 hooks/                Presence and typing realtime hooks
 lib/                  Supabase client, theme, validation, anti-spam helpers
+src/lib/crypto/       CryptoProvider interface and local development provider
+src/lib/storage/      expo-secure-store helpers for private keys and device id
+src/lib/supabase/     Device-encrypted Supabase data access layer
 services/             Push notification setup
 supabase/migrations/  Database schema, RLS, and helper RPCs
 ```
 
 ## E2EE Readiness
 
-Messages are plain text in this MVP so realtime, pagination, moderation boundaries, and UX can be validated first. The `messages.body` field and chat service are intentionally isolated so client-side encryption can later be added before insert and after fetch without reshaping the UI.
+Supabase must never receive message plaintext. The legacy chat service already encrypts `messages.body` before insert. The new architecture goes further: `encrypted_messages` stores one ciphertext row per recipient device, with public device bundles in `devices` and `prekeys`.
+
+Current crypto status:
+
+- Private keys are stored locally through `expo-secure-store` helpers and are never uploaded to Supabase.
+- The `CryptoProvider` interface is shaped for a future audited Signal Protocol implementation.
+- `localCryptoProvider` uses TweetNaCl sealed device envelopes for development only.
+- Replace the local provider with an audited Signal Protocol implementation before production.
+
+Metadata still visible to Supabase includes account ids, device ids, conversation membership, message timing, recipient device routing, file size/type for encrypted attachments, and delivery/read receipt timestamps when enabled.

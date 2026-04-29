@@ -7,6 +7,7 @@ module.exports = {
   },
   collectCoverageFrom: [
     "lib/**/*.{ts,tsx}",
+    "src/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
     "features/**/*.{ts,tsx}",
     "!**/*.d.ts"
