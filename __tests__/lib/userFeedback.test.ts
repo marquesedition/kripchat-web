@@ -36,8 +36,14 @@ describe("user feedback error mapping", () => {
   });
 
   it("formats API code and message for inline UI observers", () => {
-    expect(getApiErrorMessage({ code: "invalid_credentials", message: "Invalid login credentials" })).toBe(
-      "[invalid_credentials] Invalid login credentials"
+    expect(
+      getApiErrorMessage({
+        code: "invalid_credentials",
+        message: "Invalid login credentials",
+        endpoint: "/auth/v1/token?grant_type=password"
+      })
+    ).toBe(
+      "[invalid_credentials] Invalid login credentials\n/auth/v1/token?grant_type=password"
     );
   });
 

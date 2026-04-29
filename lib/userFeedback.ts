@@ -4,6 +4,7 @@ type ErrorShape = {
   details?: unknown;
   hint?: unknown;
   status?: unknown;
+  endpoint?: unknown;
   error?: unknown;
   response?: unknown;
   data?: unknown;
@@ -45,14 +46,16 @@ export function findApiErrorShape(error: unknown): ErrorShape | null {
   const directDetails = readStringField(error, "details");
   const directHint = readStringField(error, "hint");
   const directStatus = readStringField(error, "status");
+  const directEndpoint = readStringField(error, "endpoint");
 
-  if (directCode || directMessage || directDetails || directHint || directStatus) {
+  if (directCode || directMessage || directDetails || directHint || directStatus || directEndpoint) {
     return {
       code: directCode,
       message: directMessage,
       details: directDetails,
       hint: directHint,
-      status: directStatus
+      status: directStatus,
+      endpoint: directEndpoint
     };
   }
 
@@ -65,9 +68,11 @@ export function getApiErrorMessage(error: unknown) {
   const code = String(apiError?.code ?? "").trim();
   const message = String(apiError?.message ?? "").trim();
   const status = String(apiError?.status ?? "").trim();
+  const endpoint = String(apiError?.endpoint ?? "").trim();
   if (!code && !message && !status) return "";
   const prefix = code || status ? `[${code || status}] ` : "";
-  return `${prefix}${message || "Error de API"}`;
+  const suffix = endpoint ? `\n${endpoint}` : "";
+  return `${prefix}${message || "Error de API"}${suffix}`;
 }
 
 function errorText(error: unknown) {

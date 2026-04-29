@@ -10,6 +10,20 @@ export type SignUpResult = {
   email: string;
 };
 
+export class SupabaseAuthApiError extends Error {
+  code: string;
+  status?: number;
+  endpoint: string;
+
+  constructor(input: { code?: string | null; message: string; status?: number; endpoint: string }) {
+    super(input.message);
+    this.name = "SupabaseAuthApiError";
+    this.code = input.code ?? "auth_api_error";
+    this.status = input.status;
+    this.endpoint = input.endpoint;
+  }
+}
+
 function trimSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
@@ -23,7 +37,7 @@ export function resolveEmailConfirmRedirectUrl(origin?: string) {
 
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-  if (error) throw error;
+  if (error) throw normalizeSupabaseAuthError(error);
   return data.session;
 }
 
@@ -104,4 +118,20 @@ export function isEmailNotConfirmedError(error: unknown) {
   const code = maybeCode.toLowerCase();
 
   return code === "email_not_confirmed" || message.includes("email not confirmed");
+}
+
+function normalizeSupabaseAuthError(error: unknown) {
+  if (!error || typeof error !== "object") return error;
+
+  const record = error as { code?: unknown; message?: unknown; status?: unknown };
+  const message = typeof record.message === "string" && record.message.trim() ? record.message : "Supabase Auth request failed";
+  const code = typeof record.code === "string" ? record.code : null;
+  const status = typeof record.status === "number" ? record.status : undefined;
+
+  return new SupabaseAuthApiError({
+    code,
+    message,
+    status,
+    endpoint: "/auth/v1/token?grant_type=password"
+  });
 }
