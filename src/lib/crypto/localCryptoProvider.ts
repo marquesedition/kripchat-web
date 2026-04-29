@@ -9,8 +9,7 @@ import type {
   EncryptMessageParams,
   EncryptedMessageEnvelope,
   OneTimePreKey,
-  PublicKeyPair,
-  SignedPreKeyBundle
+  PublicKeyPair
 } from "./types";
 
 const DEFAULT_SCOPE = "identity";
