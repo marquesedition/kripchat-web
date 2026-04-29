@@ -52,7 +52,7 @@ export default function LoginScreen() {
         Alert.alert("Email confirmation required", "Confirma tu email desde el mensaje de Supabase y luego inicia sesión.");
         return;
       }
-      Alert.alert("Access denied", getUserFacingErrorMessage(error, "Unable to sign in."));
+      Alert.alert("Error de autenticación", getUserFacingErrorMessage(error, "No se pudo iniciar sesión."));
     }
   }
 

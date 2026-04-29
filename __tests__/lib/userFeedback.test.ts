@@ -15,11 +15,24 @@ describe("user feedback error mapping", () => {
 
   it("maps invalid login credentials", () => {
     expect(getUserFacingErrorMessage({ code: "invalid_credentials", message: "Invalid login credentials" })).toContain(
-      "Credenciales incorrectas. Revisa email y contraseña."
+      "Usuario no existe o credenciales incorrectas. Revisa email y contraseña."
     );
     expect(getUserFacingErrorMessage({ code: "invalid_credentials", message: "Invalid login credentials" })).toContain(
       "Detalle: Invalid login credentials"
     );
+  });
+
+  it("observes nested API response messages", () => {
+    expect(
+      getUserFacingErrorMessage({
+        response: {
+          data: {
+            code: "invalid_credentials",
+            message: "Invalid login credentials"
+          }
+        }
+      })
+    ).toContain("Detalle: Invalid login credentials");
   });
 
   it("maps common Supabase auth codes", () => {
