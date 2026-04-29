@@ -10,6 +10,8 @@
     "web": "expo start --web",
     "web:export": "expo export --platform web",
     "deploy:web": "npx eas-cli deploy --prod",
+    "db:migrate:remote": "npx supabase migration up --db-url \"$SUPABASE_DB_URL\"",
+    "db:migrate:linked": "npx supabase migration up --linked",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit",

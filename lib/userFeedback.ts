@@ -4,6 +4,9 @@ type ErrorShape = {
   details?: unknown;
   hint?: unknown;
   status?: unknown;
+  error?: unknown;
+  response?: unknown;
+  data?: unknown;
 };
 
 const SUPABASE_CODE_MESSAGES: Record<string, string> = {
@@ -13,7 +16,7 @@ const SUPABASE_CODE_MESSAGES: Record<string, string> = {
   email_exists: "Ese email ya está registrado.",
   email_not_confirmed: "Debes confirmar tu email para continuar. Revisa tu bandeja de entrada y vuelve a intentarlo.",
   email_provider_disabled: "El registro por email está desactivado en Supabase.",
-  invalid_credentials: "Credenciales incorrectas. Revisa email y contraseña.",
+  invalid_credentials: "Usuario no existe o credenciales incorrectas. Revisa email y contraseña.",
   over_email_send_rate_limit: "Has alcanzado el límite de envío de emails. Espera unos minutos antes de volver a registrarte.",
   over_request_rate_limit: "Demasiadas solicitudes desde este dispositivo o red. Espera unos minutos e inténtalo de nuevo.",
   request_timeout: "La solicitud tardó demasiado. Inténtalo de nuevo.",
@@ -28,22 +31,50 @@ const SUPABASE_CODE_MESSAGES: Record<string, string> = {
   pgrst204: "Falta una columna o recurso del esquema en Supabase."
 };
 
+function readStringField(source: unknown, field: keyof ErrorShape) {
+  if (!source || typeof source !== "object" || !(field in source)) return "";
+  const value = (source as ErrorShape)[field];
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
+function findApiErrorShape(error: unknown): ErrorShape | null {
+  if (!error || typeof error !== "object") return null;
+
+  const directCode = readStringField(error, "code");
+  const directMessage = readStringField(error, "message");
+  const directDetails = readStringField(error, "details");
+  const directHint = readStringField(error, "hint");
+  const directStatus = readStringField(error, "status");
+
+  if (directCode || directMessage || directDetails || directHint || directStatus) {
+    return {
+      code: directCode,
+      message: directMessage,
+      details: directDetails,
+      hint: directHint,
+      status: directStatus
+    };
+  }
+
+  const nested = (error as ErrorShape).error ?? (error as ErrorShape).data ?? (error as ErrorShape).response;
+  return findApiErrorShape(nested);
+}
+
 function errorText(error: unknown) {
   if (!error) return "";
   if (typeof error === "string") return error;
+  const apiError = findApiErrorShape(error);
+  if (apiError?.message) return String(apiError.message);
   if (error instanceof Error) return error.message;
-  if (typeof error === "object" && "message" in error) return String((error as ErrorShape).message ?? "");
   return "";
 }
 
 function errorCode(error: unknown) {
-  if (!error || typeof error !== "object" || !("code" in error)) return "";
-  return String((error as ErrorShape).code ?? "").toLowerCase();
+  return String(findApiErrorShape(error)?.code ?? "").toLowerCase();
 }
 
 function errorStatus(error: unknown) {
-  if (!error || typeof error !== "object" || !("status" in error)) return "";
-  return String((error as ErrorShape).status ?? "").toLowerCase();
+  return String(findApiErrorShape(error)?.status ?? "").toLowerCase();
 }
 
 function isNetworkIssue(text: string) {
