@@ -71,11 +71,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger
   },
   fillGhost: {
-    backgroundColor: "transparent"
+    backgroundColor: "rgba(60, 255, 107, 0.08)"
   },
   ghost: {
     borderWidth: 1,
-    borderColor: colors.border
+    borderColor: colors.borderStrong
   },
   disabled: {
     opacity: 0.45
@@ -89,6 +89,6 @@ const styles = StyleSheet.create({
     color: "#fff"
   },
   ghostLabel: {
-    color: colors.text
+    color: colors.green
   }
 });
