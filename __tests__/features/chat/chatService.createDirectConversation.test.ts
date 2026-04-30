@@ -1,4 +1,4 @@
-import { requestDirectConversation } from "@/features/chat/chatService";
+import { destroyConversation, requestDirectConversation } from "@/features/chat/chatService";
 import { supabase } from "@/lib/supabase";
 
 jest.mock("@/lib/antiSpam", () => ({
@@ -141,5 +141,29 @@ describe("requestDirectConversation guards and error translation", () => {
       conversationId: null,
       peerId: "peer-1"
     });
+  });
+
+  it("falls back to deleting the conversation when the old destroy rpc is blocked by storage SQL", async () => {
+    const deleteQuery = {
+      delete: jest.fn(),
+      eq: jest.fn()
+    };
+    deleteQuery.delete.mockReturnValue(deleteQuery);
+    deleteQuery.eq.mockResolvedValue({ error: null });
+    (supabase.rpc as jest.Mock).mockResolvedValue({
+      data: null,
+      error: {
+        code: "42501",
+        message: "Direct deletion from storage tables is not allowed. Use the Storage API instead."
+      }
+    });
+    (supabase.from as jest.Mock).mockReturnValue(deleteQuery);
+
+    await expect(destroyConversation("conversation-1")).resolves.toBeUndefined();
+
+    expect(supabase.rpc).toHaveBeenCalledWith("destroy_conversation_for_everyone", { p_conversation_id: "conversation-1" });
+    expect(supabase.from).toHaveBeenCalledWith("conversations");
+    expect(deleteQuery.delete).toHaveBeenCalled();
+    expect(deleteQuery.eq).toHaveBeenCalledWith("id", "conversation-1");
   });
 });

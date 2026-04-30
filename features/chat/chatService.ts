@@ -396,10 +396,25 @@ export async function destroyConversation(conversationId: string) {
   const { error } = await supabase.rpc("destroy_conversation_for_everyone", {
     p_conversation_id: conversationId
   });
-  if (error) throw error;
+  if (error) {
+    if (!isStorageSqlDeletionBlocked(error)) throw error;
+
+    const { error: deleteError } = await supabase
+      .from("conversations")
+      .delete()
+      .eq("id", conversationId);
+    if (deleteError) throw deleteError;
+  }
   peerPublicKeyCache.forEach((_value, key) => {
     if (key.endsWith(`:${conversationId}`)) peerPublicKeyCache.delete(key);
   });
+}
+
+function isStorageSqlDeletionBlocked(error: unknown) {
+  const record = error as { code?: unknown; message?: unknown };
+  const code = typeof record.code === "string" ? record.code : "";
+  const message = typeof record.message === "string" ? record.message : "";
+  return code === "42501" && message.toLowerCase().includes("direct deletion from storage tables is not allowed");
 }
 
 export async function setConversationAutoDestroy(conversationId: string, seconds: number | null) {
