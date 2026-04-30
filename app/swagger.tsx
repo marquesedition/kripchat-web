@@ -14,6 +14,15 @@ declare global {
 const SWAGGER_UI_CSS = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css";
 const SWAGGER_UI_BUNDLE = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js";
 const SWAGGER_HOME = "https://swagger.io/";
+const webOnlyStyles = {
+  webRoot: {
+    height: "100vh"
+  },
+  swaggerContainer: {
+    height: "calc(100vh - 56px)",
+    overflowY: "auto"
+  }
+} as const;
 
 export default function SwaggerScreen() {
   const mountedRef = useRef(false);
@@ -51,11 +60,11 @@ export default function SwaggerScreen() {
   }
 
   return (
-    <View style={styles.webRoot}>
+    <View style={[styles.webRoot, webOnlyStyles.webRoot as never]}>
       <View style={styles.topBar}>
         <Pressable accessibilityRole="button" onPress={() => router.push("/home")} style={styles.backButton}>
           <Ionicons name="chevron-back" size={18} color={colors.text} />
-        <Text style={styles.backText}>KripChat</Text>
+          <Text style={styles.backText}>KripChat</Text>
         </Pressable>
         <Text style={styles.title}>API Swagger</Text>
         <View style={styles.linkGroup}>
@@ -67,7 +76,7 @@ export default function SwaggerScreen() {
           </Pressable>
         </View>
       </View>
-      <View nativeID="swagger-ui" style={styles.swaggerContainer} />
+      <View nativeID="swagger-ui" style={[styles.swaggerContainer, webOnlyStyles.swaggerContainer as never]} />
     </View>
   );
 }
