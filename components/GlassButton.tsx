@@ -8,7 +8,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 type Props = PropsWithChildren<{
   label?: string;
   disabled?: boolean;
-  variant?: "primary" | "ghost" | "danger";
+  variant?: "primary" | "secondary" | "danger";
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
 }>;
@@ -32,9 +32,9 @@ export function GlassButton({ children, label, disabled, variant = "primary", st
       }}
       style={[styles.pressable, disabled && styles.disabled, animatedStyle, style]}
     >
-      <View style={[styles.fill, getFillStyle(variant), variant === "ghost" && styles.ghost]}>
+      <View style={[styles.fill, getFillStyle(variant)]}>
         {children ?? (
-          <Text style={[styles.label, variant === "ghost" && styles.ghostLabel, variant === "danger" && styles.dangerLabel]}>
+          <Text style={[styles.label, variant === "secondary" && styles.secondaryLabel, variant === "danger" && styles.dangerLabel]}>
             {label}
           </Text>
         )}
@@ -45,7 +45,7 @@ export function GlassButton({ children, label, disabled, variant = "primary", st
 
 function getFillStyle(variant: Props["variant"]) {
   if (variant === "danger") return styles.fillDanger;
-  if (variant === "ghost") return styles.fillGhost;
+  if (variant === "secondary") return styles.fillSecondary;
   return styles.fillPrimary;
 }
 
@@ -70,12 +70,8 @@ const styles = StyleSheet.create({
   fillDanger: {
     backgroundColor: colors.danger
   },
-  fillGhost: {
-    backgroundColor: "rgba(60, 255, 107, 0.08)"
-  },
-  ghost: {
-    borderWidth: 1,
-    borderColor: colors.borderStrong
+  fillSecondary: {
+    backgroundColor: colors.surfaceStrong
   },
   disabled: {
     opacity: 0.45
@@ -88,7 +84,7 @@ const styles = StyleSheet.create({
   dangerLabel: {
     color: "#fff"
   },
-  ghostLabel: {
-    color: colors.green
+  secondaryLabel: {
+    color: colors.text
   }
 });

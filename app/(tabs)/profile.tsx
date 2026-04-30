@@ -106,7 +106,7 @@ export default function ProfileScreen() {
                   label={browserNotificationPermission === "granted" ? "Notifications on" : "Enable notifications"}
                   onPress={enableWebNotifications}
                   style={styles.primaryAction}
-                  variant={browserNotificationPermission === "granted" ? "ghost" : "primary"}
+                  variant={browserNotificationPermission === "granted" ? "secondary" : "primary"}
                 />
               ) : null}
               <GlassButton label="Save profile" onPress={save} style={styles.primaryAction} />

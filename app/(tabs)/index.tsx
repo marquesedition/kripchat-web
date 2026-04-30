@@ -97,8 +97,8 @@ export default function ChatListScreen() {
             <View style={styles.headerRule} />
           </View>
           <View style={styles.headerActions}>
-            <Pressable accessibilityLabel="Refresh channels" accessibilityRole="button" onPress={refresh} style={styles.ghostIconButton}>
-              <Ionicons name="sync-outline" color={colors.green} size={18} />
+            <Pressable accessibilityLabel="Refresh channels" accessibilityRole="button" onPress={refresh} style={styles.secondaryIconButton}>
+              <Ionicons name="sync-outline" color={colors.text} size={18} />
             </Pressable>
             <Pressable accessibilityLabel="New secure channel" accessibilityRole="button" onPress={() => setModalOpen(true)} style={styles.iconButton}>
               <Ionicons name="add" color={colors.bg} size={21} />
@@ -159,7 +159,7 @@ export default function ChatListScreen() {
                 </View>
               ) : null}
               <View style={styles.modalActions}>
-                <GlassButton label="Cancel" variant="ghost" onPress={() => setModalOpen(false)} style={styles.cancelButton} />
+                <GlassButton label="Cancel" variant="secondary" onPress={() => setModalOpen(false)} style={styles.cancelButton} />
                 <GlassButton label="Open channel" disabled={username.length < 3} onPress={createChat} style={styles.openButton} />
               </View>
             </Pressable>
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.green
   },
-  ghostIconButton: {
+  secondaryIconButton: {
     width: 36,
     height: 36,
     borderRadius: radii.md,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-    backgroundColor: "rgba(120, 213, 188, 0.08)"
+    backgroundColor: colors.surfaceStrong
   },
   networkStrip: {
     flexDirection: "row",
