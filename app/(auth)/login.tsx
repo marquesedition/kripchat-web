@@ -15,10 +15,15 @@ import { isValidEmail } from "@/lib/validation";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [apiMessage, setApiMessage] = useState("");
+  const [authError, setAuthError] = useState<{ title: string; message: string; apiMessage?: string } | null>(null);
   const params = useLocalSearchParams<{ confirmed?: string; confirm_error?: string }>();
   const loading = useAuthStore((state) => state.loading);
   const signIn = useAuthStore((state) => state.signIn);
+
+  function showLoginError(title: string, message: string, apiMessage?: string) {
+    setAuthError({ title, message, apiMessage });
+    Alert.alert(title, apiMessage ? `${message}\n\n${apiMessage}` : message);
+  }
 
   useEffect(() => {
     const confirmed = Array.isArray(params.confirmed) ? params.confirmed[0] : params.confirmed;
@@ -37,13 +42,13 @@ export default function LoginScreen() {
   }, [params.confirm_error, params.confirmed]);
 
   async function onSubmit() {
-    setApiMessage("");
+    setAuthError(null);
     if (!isSupabaseConfigured) {
-      Alert.alert("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment.");
+      showLoginError("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment.");
       return;
     }
     if (!isValidEmail(email) || !password) {
-      Alert.alert("Invalid login", "Enter a valid email and password.");
+      showLoginError("Invalid login", "Enter a valid email and password.");
       return;
     }
     try {
@@ -51,12 +56,11 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } catch (error) {
       const apiErrorMessage = getApiErrorMessage(error);
-      if (apiErrorMessage) setApiMessage(apiErrorMessage);
       if (isEmailNotConfirmedError(error)) {
-        Alert.alert("Email confirmation required", "Confirma tu email desde el mensaje de Supabase y luego inicia sesión.");
+        showLoginError("Email confirmation required", "Confirma tu email desde el mensaje de Supabase y luego inicia sesión.", apiErrorMessage);
         return;
       }
-      Alert.alert("Error de autenticación", getUserFacingErrorMessage(error, "No se pudo iniciar sesión."));
+      showLoginError("Error de autenticación", getUserFacingErrorMessage(error, "No se pudo iniciar sesión."), apiErrorMessage);
     }
   }
 
@@ -84,7 +88,7 @@ export default function LoginScreen() {
                 value={email}
                 onChangeText={(value) => {
                   setEmail(value);
-                  if (apiMessage) setApiMessage("");
+                  if (authError) setAuthError(null);
                 }}
                 style={styles.input}
               />
@@ -97,15 +101,16 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={(value) => {
                   setPassword(value);
-                  if (apiMessage) setApiMessage("");
+                  if (authError) setAuthError(null);
                 }}
                 style={styles.input}
               />
             </View>
-            {apiMessage ? (
+            {authError ? (
               <View style={styles.apiErrorBox}>
-                <Text style={styles.apiErrorLabel}>API MESSAGE</Text>
-                <Text style={styles.apiErrorText}>{apiMessage}</Text>
+                <Text style={styles.apiErrorLabel}>{authError.title}</Text>
+                <Text style={styles.apiErrorText}>{authError.message}</Text>
+                {authError.apiMessage ? <Text style={styles.apiErrorRaw}>{authError.apiMessage}</Text> : null}
               </View>
             ) : null}
             <View style={styles.actionStack}>
@@ -203,6 +208,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     fontSize: 12,
     lineHeight: 18
+  },
+  apiErrorRaw: {
+    color: "#ffb4b4",
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 8
   },
   input: {
     minHeight: 54,
