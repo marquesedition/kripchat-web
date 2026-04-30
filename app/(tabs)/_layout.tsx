@@ -44,8 +44,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="help"
         options={{
-          title: "Help",
-          tabBarIcon: ({ color, size }) => <Ionicons name="help-circle-outline" color={color} size={size} />
+          title: "Info",
+          tabBarIcon: ({ color, size }) => <Ionicons name="information-circle-outline" color={color} size={size} />
         }}
       />
     </Tabs>
