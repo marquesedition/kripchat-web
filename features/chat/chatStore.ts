@@ -1,40 +1,49 @@
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { create } from "zustand";
 import {
-  createDirectConversation,
+  acceptChatRequest,
   decryptMessageRecord,
   destroyConversation,
+  fetchChatRequests,
   fetchChatPreviews,
   fetchMessages,
+  rejectChatRequest,
+  requestDirectConversation,
   sendMessage,
   setConversationAutoDestroy,
   setConversationHighRisk,
+  type DirectConversationRequestResult,
   type SendMessagePayload
 } from "@/features/chat/chatService";
-import type { ChatPreview, Message } from "@/features/chat/types";
+import type { ChatPreview, ChatRequest, Message } from "@/features/chat/types";
 import { supabase } from "@/lib/supabase";
 import { showBrowserMessageNotification } from "@/services/notifications";
 
 type ChatState = {
   previews: ChatPreview[];
+  requests: ChatRequest[];
   messagesByConversation: Record<string, Message[]>;
   previewLoading: boolean;
   messageLoading: boolean;
   activeChannel: RealtimeChannel | null;
   loadPreviews: (userId: string) => Promise<void>;
+  loadRequests: () => Promise<void>;
   loadMessages: (conversationId: string, userId: string) => Promise<void>;
   loadOlderMessages: (conversationId: string, userId: string) => Promise<void>;
   send: (conversationId: string, senderId: string, payload: string | SendMessagePayload) => Promise<void>;
   destroy: (conversationId: string, userId: string) => Promise<void>;
   setAutoDestroy: (conversationId: string, userId: string, seconds: number | null) => Promise<void>;
   setHighRisk: (conversationId: string, userId: string, enabled: boolean) => Promise<void>;
-  openDirect: (userId: string, username: string) => Promise<string>;
+  openDirect: (userId: string, username: string) => Promise<DirectConversationRequestResult>;
+  acceptRequest: (requestId: string, userId: string) => Promise<string>;
+  rejectRequest: (requestId: string, userId: string) => Promise<void>;
   subscribeToConversation: (conversationId: string, userId: string) => void;
   unsubscribeActive: () => void;
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
   previews: [],
+  requests: [],
   messagesByConversation: {},
   previewLoading: false,
   messageLoading: false,
@@ -48,6 +57,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } finally {
       set({ previewLoading: false });
     }
+  },
+
+  loadRequests: async () => {
+    const requests = await fetchChatRequests();
+    set({ requests });
   },
 
   loadMessages: async (conversationId, userId) => {
@@ -128,9 +142,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   openDirect: async (userId, username) => {
-    const conversationId = await createDirectConversation(userId, username);
+    const result = await requestDirectConversation(username);
     await get().loadPreviews(userId);
+    await get().loadRequests();
+    return result;
+  },
+
+  acceptRequest: async (requestId, userId) => {
+    const conversationId = await acceptChatRequest(requestId);
+    await get().loadPreviews(userId);
+    await get().loadRequests();
     return conversationId;
+  },
+
+  rejectRequest: async (requestId, userId) => {
+    await rejectChatRequest(requestId);
+    await get().loadRequests();
   },
 
   destroy: async (conversationId, userId) => {

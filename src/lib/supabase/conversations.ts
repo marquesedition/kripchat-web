@@ -6,6 +6,30 @@ export async function createDirectConversation(peerId: string) {
   return data as string;
 }
 
+export async function requestDirectConversationByUsername(peerUsername: string) {
+  const { data, error } = await supabase.rpc("request_direct_conversation_by_username", { peer_username: peerUsername });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getChatRequests() {
+  const { data, error } = await supabase.rpc("list_chat_requests");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function acceptChatRequest(requestId: string) {
+  const { data, error } = await supabase.rpc("accept_chat_request", { p_request_id: requestId });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function rejectChatRequest(requestId: string) {
+  const { data, error } = await supabase.rpc("reject_chat_request", { p_request_id: requestId });
+  if (error) throw error;
+  return data as string;
+}
+
 export async function getMyConversations() {
   const { data, error } = await supabase
     .from("conversation_members")

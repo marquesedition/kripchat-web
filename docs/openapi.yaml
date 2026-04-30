@@ -236,7 +236,8 @@ paths:
   /rest/v1/rpc/create_direct_conversation_by_username:
     post:
       tags: [Conversations]
-      summary: Create or reuse legacy direct conversation by username
+      summary: Compatibility endpoint for direct conversations by username
+      description: Returns an existing accepted conversation UUID. For new peers this now creates/reuses a pending chat request and responds with an API error message instead of auto-adding both users.
       security:
         - SupabaseJwt: []
       requestBody:
@@ -252,16 +253,19 @@ paths:
                   example: bob
       responses:
         "200":
-          description: Conversation UUID
+          description: Existing accepted conversation UUID
           content:
             application/json:
               schema:
                 type: string
                 format: uuid
+        "400":
+          description: Chat request is pending
   /rest/v1/rpc/create_direct_conversation_v2:
     post:
       tags: [Conversations]
-      summary: Create or reuse device-encrypted direct conversation
+      summary: Compatibility endpoint for direct conversations by profile ID
+      description: Returns an existing accepted conversation UUID. For new peers this now creates/reuses a pending chat request and responds with an API error message instead of auto-adding both users.
       security:
         - SupabaseJwt: []
       requestBody:
@@ -277,7 +281,104 @@ paths:
                   format: uuid
       responses:
         "200":
+          description: Existing accepted conversation UUID
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        "400":
+          description: Chat request is pending
+  /rest/v1/rpc/request_direct_conversation_by_username:
+    post:
+      tags: [Conversations]
+      summary: Request a direct chat by username
+      description: Creates or reuses a pending chat request. If both users already share an accepted direct chat, returns that conversation ID.
+      security:
+        - SupabaseJwt: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [peer_username]
+              properties:
+                peer_username:
+                  type: string
+                  example: bob
+      responses:
+        "200":
+          description: Request state
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DirectConversationRequestResult"
+  /rest/v1/rpc/list_chat_requests:
+    post:
+      tags: [Conversations]
+      summary: List pending and recent chat request activity
+      description: Returns inbound pending requests plus outbound pending/rejected activity for the signed-in user.
+      security:
+        - SupabaseJwt: []
+      responses:
+        "200":
+          description: Chat request inbox rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatRequest"
+  /rest/v1/rpc/accept_chat_request:
+    post:
+      tags: [Conversations]
+      summary: Accept an inbound chat request
+      description: Creates the direct conversation, adds both users to the chat list, and marks the request accepted.
+      security:
+        - SupabaseJwt: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_request_id]
+              properties:
+                p_request_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
           description: Conversation UUID
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+  /rest/v1/rpc/reject_chat_request:
+    post:
+      tags: [Conversations]
+      summary: Reject an inbound chat request
+      description: Marks the request rejected so the requester sees the rejection in their inbox.
+      security:
+        - SupabaseJwt: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_request_id]
+              properties:
+                p_request_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Request UUID
           content:
             application/json:
               schema:
@@ -1436,6 +1537,67 @@ components:
           type: string
           format: date-time
           nullable: true
+    DirectConversationRequestResult:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+        conversation_id:
+          type: string
+          format: uuid
+          nullable: true
+        peer_id:
+          type: string
+          format: uuid
+    ChatRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        direction:
+          type: string
+          enum: [inbound, outbound]
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+        conversation_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        responded_at:
+          type: string
+          format: date-time
+          nullable: true
+        peer_id:
+          type: string
+          format: uuid
+        peer_username:
+          type: string
+        peer_avatar_url:
+          type: string
+          nullable: true
+        peer_push_token:
+          type: string
+          nullable: true
+        peer_e2ee_public_key:
+          type: string
+          nullable: true
+        peer_online_at:
+          type: string
+          format: date-time
+          nullable: true
+        peer_created_at:
+          type: string
+          format: date-time
     Device:
       type: object
       properties:

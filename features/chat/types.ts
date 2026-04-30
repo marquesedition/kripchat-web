@@ -50,3 +50,14 @@ export type ChatPreview = {
   lastMessage: Message | null;
   typing?: boolean;
 };
+
+export type ChatRequest = {
+  id: string;
+  direction: "inbound" | "outbound";
+  status: "pending" | "accepted" | "rejected";
+  conversation_id: string | null;
+  created_at: string;
+  responded_at: string | null;
+  peer: Profile;
+  peerOnline: boolean;
+};

@@ -1,4 +1,4 @@
-import { createDirectConversation } from "@/features/chat/chatService";
+import { requestDirectConversation } from "@/features/chat/chatService";
 import { supabase } from "@/lib/supabase";
 
 jest.mock("@/lib/antiSpam", () => ({
@@ -28,7 +28,7 @@ jest.mock("@/lib/supabase", () => ({
   }
 }));
 
-describe("createDirectConversation guards and error translation", () => {
+describe("requestDirectConversation guards and error translation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -36,7 +36,7 @@ describe("createDirectConversation guards and error translation", () => {
   it("requires an authenticated session", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({ data: { session: null } });
 
-    await expect(createDirectConversation("user-1", "peer")).rejects.toThrow("Sign in before opening a channel.");
+    await expect(requestDirectConversation("peer")).rejects.toThrow("Sign in before opening a channel.");
     expect(supabase.from).not.toHaveBeenCalled();
   });
 
@@ -45,7 +45,7 @@ describe("createDirectConversation guards and error translation", () => {
       data: { session: { user: { id: "user-1", email_confirmed_at: null } } }
     });
 
-    await expect(createDirectConversation("user-1", "peer")).rejects.toThrow("Confirm your email before opening a channel.");
+    await expect(requestDirectConversation("peer")).rejects.toThrow("Confirm your email before opening a channel.");
   });
 
   it("rejects empty usernames before querying Supabase", async () => {
@@ -53,7 +53,7 @@ describe("createDirectConversation guards and error translation", () => {
       data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
     });
 
-    await expect(createDirectConversation("user-1", "   ")).rejects.toThrow("Enter a valid username.");
+    await expect(requestDirectConversation("   ")).rejects.toThrow("Enter a valid username.");
     expect(supabase.from).not.toHaveBeenCalled();
   });
 
@@ -70,7 +70,7 @@ describe("createDirectConversation guards and error translation", () => {
       }
     });
 
-    await expect(createDirectConversation("user-1", "Peer_Name")).rejects.toThrow(
+    await expect(requestDirectConversation("Peer_Name")).rejects.toThrow(
       "Supabase blocked profile lookup. Sign in with a confirmed account and try again."
     );
   });
@@ -88,22 +88,58 @@ describe("createDirectConversation guards and error translation", () => {
       }
     });
 
-    await expect(createDirectConversation("user-1", "Peer_Name")).rejects.toMatchObject({
+    await expect(requestDirectConversation("Peer_Name")).rejects.toMatchObject({
       code: "P0001",
       message: "peer not found"
     });
   });
 
-  it("opens the direct conversation when lookup and rpc succeed", async () => {
+  it("returns an accepted conversation when lookup and rpc succeed", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
     });
     (supabase.rpc as jest.Mock).mockResolvedValue({
-      data: "conversation-1",
+      data: [
+        {
+          request_id: null,
+          status: "accepted",
+          conversation_id: "conversation-1",
+          peer_id: "peer-1"
+        }
+      ],
       error: null
     });
 
-    await expect(createDirectConversation("user-1", "Peer_Name")).resolves.toBe("conversation-1");
-    expect(supabase.rpc).toHaveBeenCalledWith("create_direct_conversation_by_username", { peer_username: "peer_name" });
+    await expect(requestDirectConversation("Peer_Name")).resolves.toEqual({
+      requestId: null,
+      status: "accepted",
+      conversationId: "conversation-1",
+      peerId: "peer-1"
+    });
+    expect(supabase.rpc).toHaveBeenCalledWith("request_direct_conversation_by_username", { peer_username: "peer_name" });
+  });
+
+  it("returns a pending request when the peer has not accepted yet", async () => {
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
+    });
+    (supabase.rpc as jest.Mock).mockResolvedValue({
+      data: [
+        {
+          request_id: "request-1",
+          status: "pending",
+          conversation_id: null,
+          peer_id: "peer-1"
+        }
+      ],
+      error: null
+    });
+
+    await expect(requestDirectConversation("Peer_Name")).resolves.toEqual({
+      requestId: "request-1",
+      status: "pending",
+      conversationId: null,
+      peerId: "peer-1"
+    });
   });
 });

@@ -17,21 +17,28 @@ import { showBrowserMessageNotification } from "@/services/notifications";
 export default function ChatListScreen() {
   const userId = useAuthStore((state) => state.session?.user.id);
   const previews = useChatStore((state) => state.previews);
+  const requests = useChatStore((state) => state.requests);
   const loading = useChatStore((state) => state.previewLoading);
   const loadPreviews = useChatStore((state) => state.loadPreviews);
+  const loadRequests = useChatStore((state) => state.loadRequests);
   const openDirect = useChatStore((state) => state.openDirect);
+  const acceptRequest = useChatStore((state) => state.acceptRequest);
+  const rejectRequest = useChatStore((state) => state.rejectRequest);
   const [modalOpen, setModalOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [newChatError, setNewChatError] = useState("");
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inboxStatus = loading ? "Refreshing secure channels" : "Encrypted inbox ready";
+  const pendingInboundCount = requests.filter((request) => request.direction === "inbound" && request.status === "pending").length;
+  const inboxStatus = loading ? "Refreshing secure channels" : pendingInboundCount ? `${pendingInboundCount} pending request` : "Encrypted inbox ready";
   const syncStatus = previews.some((item) => item.peerOnline) ? "Presence synced" : "No peers online";
 
   const refresh = useCallback(() => {
     if (userId) {
-      loadPreviews(userId).catch((error) => Alert.alert("Sync failed", getUserFacingErrorMessage(error, "Unable to sync channels.")));
+      Promise.all([loadPreviews(userId), loadRequests()]).catch((error) =>
+        Alert.alert("Sync failed", getUserFacingErrorMessage(error, "Unable to sync channels."))
+      );
     }
-  }, [loadPreviews, userId]);
+  }, [loadPreviews, loadRequests, userId]);
 
   useEffect(() => {
     refresh();
@@ -43,7 +50,7 @@ export default function ChatListScreen() {
     const scheduleRefresh = () => {
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {
-        loadPreviews(userId).catch(() => undefined);
+        Promise.all([loadPreviews(userId), loadRequests()]).catch(() => undefined);
       }, 250);
     };
 
@@ -63,6 +70,8 @@ export default function ChatListScreen() {
       .channel(`inbox:${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, handleIncomingMessage)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversation_participants" }, scheduleRefresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_requests" }, scheduleRefresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_requests" }, scheduleRefresh)
       .subscribe();
 
     return () => {
@@ -70,21 +79,59 @@ export default function ChatListScreen() {
       refreshTimerRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [loadPreviews, userId]);
+  }, [loadPreviews, loadRequests, userId]);
 
   async function createChat() {
     if (!userId) return;
     setNewChatError("");
     try {
-      const conversationId = await openDirect(userId, normalizeUsername(username));
+      const result = await openDirect(userId, normalizeUsername(username));
       setModalOpen(false);
       setUsername("");
-      router.push(`/chat/${conversationId}`);
+      if (result.status === "accepted" && result.conversationId) {
+        router.push(`/chat/${result.conversationId}`);
+        return;
+      }
+
+      const request = useChatStore.getState().requests.find((item) => item.id === result.requestId);
+      if (request?.direction === "inbound") {
+        Alert.alert(
+          "Solicitud de chat pendiente",
+          `@${request.peer.username} quiere abrir un canal contigo. Acepta para agregarlo al listado de chats.`,
+          [
+            { text: "Rechazar", style: "destructive", onPress: () => handleRejectRequest(request.id) },
+            { text: "Aceptar", onPress: () => handleAcceptRequest(request.id) }
+          ]
+        );
+        return;
+      }
+
+      Alert.alert("Solicitud enviada", "El canal se agregará cuando la otra persona acepte la solicitud.");
     } catch (error) {
       const message = getUserFacingErrorMessage(error, "Try another username.");
       const apiMessage = String(findApiErrorShape(error)?.message ?? "").trim();
       setNewChatError(apiMessage && !message.toLowerCase().includes(apiMessage.toLowerCase()) ? `${message}\n\n${apiMessage}` : message);
       Alert.alert("Could not open channel", message);
+    }
+  }
+
+  async function handleAcceptRequest(requestId: string) {
+    if (!userId) return;
+    try {
+      const conversationId = await acceptRequest(requestId, userId);
+      router.push(`/chat/${conversationId}`);
+    } catch (error) {
+      Alert.alert("No se pudo aceptar", getUserFacingErrorMessage(error, "No se pudo aceptar la solicitud."));
+    }
+  }
+
+  async function handleRejectRequest(requestId: string) {
+    if (!userId) return;
+    try {
+      await rejectRequest(requestId, userId);
+      Alert.alert("Solicitud rechazada", "Se informará al solicitante en su inbox.");
+    } catch (error) {
+      Alert.alert("No se pudo rechazar", getUserFacingErrorMessage(error, "No se pudo rechazar la solicitud."));
     }
   }
 
@@ -113,6 +160,32 @@ export default function ChatListScreen() {
         </View>
 
         {loading && !previews.length ? <ActivityIndicator color={colors.green} style={styles.loader} /> : null}
+
+        {requests.length ? (
+          <View style={styles.requestPanel}>
+            <Text style={styles.requestPanelTitle}>Inbox requests</Text>
+            {requests.map((request) => (
+              <View key={request.id} style={styles.requestCard}>
+                <View style={styles.requestTextBlock}>
+                  <Text style={styles.requestTitle} numberOfLines={1}>@{request.peer.username}</Text>
+                  <Text style={styles.requestBody}>
+                    {formatRequestCopy(request.direction, request.status)}
+                  </Text>
+                </View>
+                {request.direction === "inbound" && request.status === "pending" ? (
+                  <View style={styles.requestActions}>
+                    <Pressable accessibilityRole="button" onPress={() => handleRejectRequest(request.id)} style={[styles.requestButton, styles.rejectButton]}>
+                      <Ionicons name="close" color={colors.danger} size={18} />
+                    </Pressable>
+                    <Pressable accessibilityRole="button" onPress={() => handleAcceptRequest(request.id)} style={[styles.requestButton, styles.acceptButton]}>
+                      <Ionicons name="checkmark" color={colors.bg} size={18} />
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <FlatList
           data={previews}
@@ -169,6 +242,14 @@ export default function ChatListScreen() {
       </Modal>
     </ScreenShell>
   );
+}
+
+function formatRequestCopy(direction: "inbound" | "outbound", status: "pending" | "accepted" | "rejected") {
+  if (direction === "inbound" && status === "pending") return "Quiere abrir un canal contigo.";
+  if (direction === "outbound" && status === "pending") return "Esperando confirmación.";
+  if (direction === "outbound" && status === "rejected") return "Solicitud rechazada.";
+  if (status === "accepted") return "Solicitud aceptada.";
+  return "Solicitud actualizada.";
 }
 
 const styles = StyleSheet.create({
@@ -250,6 +331,64 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingBottom: 96
+  },
+  requestPanel: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    gap: 8
+  },
+  requestPanelTitle: {
+    color: colors.green,
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    fontWeight: "900"
+  },
+  requestCard: {
+    minHeight: 68,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(60, 255, 107, 0.08)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  requestTextBlock: {
+    flex: 1,
+    minWidth: 0
+  },
+  requestTitle: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  requestBody: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 3
+  },
+  requestActions: {
+    flexDirection: "row",
+    gap: 8
+  },
+  requestButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  rejectButton: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 71, 87, 0.55)",
+    backgroundColor: "rgba(255, 71, 87, 0.12)"
+  },
+  acceptButton: {
+    backgroundColor: colors.green
   },
   emptyCard: {
     padding: spacing.lg,

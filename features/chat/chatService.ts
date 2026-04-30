@@ -8,7 +8,7 @@ import {
 } from "@/lib/cryptoPayload";
 import { deriveConversationSharedKey, ensureE2EEIdentity, isV2EncryptedEnvelope } from "@/lib/e2ee";
 import { sanitizeMessage } from "@/lib/validation";
-import type { ChatPreview, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
+import type { ChatPreview, ChatRequest, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
 import { sendExpoPushNotification } from "@/services/notifications";
 
 const ATTACHMENT_BUCKET = "chat-attachments";
@@ -49,6 +49,29 @@ type PreviewRpcRow = {
   last_message_created_at: string | null;
 };
 
+type RequestRpcRow = {
+  id: string;
+  direction: ChatRequest["direction"];
+  status: ChatRequest["status"];
+  conversation_id: string | null;
+  created_at: string;
+  responded_at: string | null;
+  peer_id: string;
+  peer_username: string;
+  peer_avatar_url: string | null;
+  peer_push_token: string | null;
+  peer_e2ee_public_key: string | null;
+  peer_online_at: string | null;
+  peer_created_at: string;
+};
+
+export type DirectConversationRequestResult = {
+  requestId: string | null;
+  status: "pending" | "accepted" | "rejected";
+  conversationId: string | null;
+  peerId: string;
+};
+
 export type SendMessagePayload = {
   body: string;
   kind?: MessageKind;
@@ -80,6 +103,16 @@ export async function fetchChatPreviews(currentUserId: string): Promise<ChatPrev
   }
 
   return mapPreviewsFromRpcRows((data ?? []) as PreviewRpcRow[], currentUserId);
+}
+
+export async function fetchChatRequests(): Promise<ChatRequest[]> {
+  const { data, error } = await supabase.rpc("list_chat_requests");
+  if (error) {
+    if (isMissingChatRequestsRpc(error)) return [];
+    throw error;
+  }
+
+  return ((data ?? []) as RequestRpcRow[]).map(mapChatRequestFromRpcRow);
 }
 
 export async function fetchMessages(conversationId: string, currentUserId: string, before?: string): Promise<Message[]> {
@@ -320,7 +353,7 @@ export async function decryptMessageRecord(
   };
 }
 
-export async function createDirectConversation(currentUserId: string, username: string) {
+export async function requestDirectConversation(username: string): Promise<DirectConversationRequestResult> {
   const { data: authData } = await supabase.auth.getSession();
   const sessionUser = authData.session?.user;
   if (!sessionUser?.id) throw new Error("Sign in before opening a channel.");
@@ -329,7 +362,7 @@ export async function createDirectConversation(currentUserId: string, username: 
   const normalizedUsername = username.trim().toLowerCase();
   if (!normalizedUsername) throw new Error("Enter a valid username.");
 
-  const { data, error } = await supabase.rpc("create_direct_conversation_by_username", {
+  const { data, error } = await supabase.rpc("request_direct_conversation_by_username", {
     peer_username: normalizedUsername
   });
   if (error) {
@@ -342,7 +375,30 @@ export async function createDirectConversation(currentUserId: string, username: 
     }
     throw error;
   }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("No response from chat request API.");
+
+  return {
+    requestId: row.request_id ?? null,
+    status: row.status,
+    conversationId: row.conversation_id ?? null,
+    peerId: row.peer_id
+  };
+}
+
+export async function acceptChatRequest(requestId: string) {
+  const { data, error } = await supabase.rpc("accept_chat_request", {
+    p_request_id: requestId
+  });
+  if (error) throw error;
   return data as string;
+}
+
+export async function rejectChatRequest(requestId: string) {
+  const { error } = await supabase.rpc("reject_chat_request", {
+    p_request_id: requestId
+  });
+  if (error) throw error;
 }
 
 export async function updatePresence(userId: string) {
@@ -427,6 +483,29 @@ async function mapPreviewsFromRpcRows(rows: PreviewRpcRow[], currentUserId: stri
   );
 }
 
+function mapChatRequestFromRpcRow(row: RequestRpcRow): ChatRequest {
+  const peer: Profile = {
+    id: row.peer_id,
+    username: row.peer_username,
+    avatar_url: row.peer_avatar_url,
+    push_token: row.peer_push_token,
+    e2ee_public_key: row.peer_e2ee_public_key,
+    online_at: row.peer_online_at,
+    created_at: row.peer_created_at
+  };
+
+  return {
+    id: row.id,
+    direction: row.direction,
+    status: row.status,
+    conversation_id: row.conversation_id,
+    created_at: row.created_at,
+    responded_at: row.responded_at,
+    peer,
+    peerOnline: isOnline(peer.online_at)
+  };
+}
+
 async function fetchChatPreviewsFallback(currentUserId: string): Promise<ChatPreview[]> {
   const { data, error } = await supabase
     .from("conversation_participants")
@@ -509,6 +588,19 @@ function findPeerProfile(
 }
 
 function isMissingChatPreviewsRpc(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const maybeError = error as { code?: unknown; message?: unknown; details?: unknown; status?: unknown };
+  const code = String(maybeError.code ?? "").toLowerCase();
+  const status = Number(maybeError.status ?? 0);
+  const message = String(maybeError.message ?? "").toLowerCase();
+  const details = String(maybeError.details ?? "").toLowerCase();
+  const text = `${message} ${details}`;
+
+  return code === "pgrst202" || status === 404 || text.includes("could not find the function") || text.includes("not found");
+}
+
+function isMissingChatRequestsRpc(error: unknown) {
   if (!error || typeof error !== "object") return false;
 
   const maybeError = error as { code?: unknown; message?: unknown; details?: unknown; status?: unknown };
