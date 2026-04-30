@@ -444,28 +444,33 @@ const styles = StyleSheet.create({
     gap: 10
   },
   infoRow: {
-    minHeight: 78,
+    minHeight: 74,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: "rgba(255,255,255,0.018)",
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
     flexDirection: "row",
-    gap: 11
+    alignItems: "flex-start",
+    gap: 14
   },
   rowIcon: {
-    width: 32,
-    height: 32,
+    width: 38,
+    height: 38,
     borderRadius: radii.sm,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(60,255,107,0.24)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(60,255,107,0.055)"
+    backgroundColor: "rgba(60,255,107,0.055)",
+    flexShrink: 0,
+    marginTop: 1
   },
   rowCopy: {
     flex: 1,
-    minWidth: 0
+    minWidth: 0,
+    paddingTop: 1
   },
   rowTitle: {
     color: colors.text,
