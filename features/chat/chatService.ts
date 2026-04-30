@@ -338,7 +338,7 @@ export async function createDirectConversation(currentUserId: string, username: 
       throw new Error("Supabase blocked profile lookup. Sign in with a confirmed account and try again.");
     }
     if (rawMessage.includes("peer not found")) {
-      throw new Error("No profile found for that username");
+      throw error;
     }
     throw error;
   }

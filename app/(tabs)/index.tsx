@@ -9,7 +9,7 @@ import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/features/auth/authStore";
 import { useChatStore } from "@/features/chat/chatStore";
 import { supabase } from "@/lib/supabase";
-import { getUserFacingErrorMessage } from "@/lib/userFeedback";
+import { findApiErrorShape, getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { normalizeUsername } from "@/lib/validation";
 import { showBrowserMessageNotification } from "@/services/notifications";
@@ -22,6 +22,7 @@ export default function ChatListScreen() {
   const openDirect = useChatStore((state) => state.openDirect);
   const [modalOpen, setModalOpen] = useState(false);
   const [username, setUsername] = useState("");
+  const [newChatError, setNewChatError] = useState("");
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inboxStatus = loading ? "Refreshing secure channels" : "Encrypted inbox ready";
   const syncStatus = previews.some((item) => item.peerOnline) ? "Presence synced" : "No peers online";
@@ -73,13 +74,17 @@ export default function ChatListScreen() {
 
   async function createChat() {
     if (!userId) return;
+    setNewChatError("");
     try {
       const conversationId = await openDirect(userId, normalizeUsername(username));
       setModalOpen(false);
       setUsername("");
       router.push(`/chat/${conversationId}`);
     } catch (error) {
-      Alert.alert("Could not open channel", getUserFacingErrorMessage(error, "Try another username."));
+      const message = getUserFacingErrorMessage(error, "Try another username.");
+      const apiMessage = String(findApiErrorShape(error)?.message ?? "").trim();
+      setNewChatError(apiMessage && !message.toLowerCase().includes(apiMessage.toLowerCase()) ? `${message}\n\n${apiMessage}` : message);
+      Alert.alert("Could not open channel", message);
     }
   }
 
@@ -140,10 +145,19 @@ export default function ChatListScreen() {
                   placeholder="peer_username"
                   placeholderTextColor={colors.faint}
                   value={username}
-                  onChangeText={(value) => setUsername(normalizeUsername(value))}
+                  onChangeText={(value) => {
+                    setUsername(normalizeUsername(value));
+                    if (newChatError) setNewChatError("");
+                  }}
                   style={styles.input}
                 />
               </View>
+              {newChatError ? (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorTitle}>No se pudo abrir el chat</Text>
+                  <Text style={styles.errorText}>{newChatError}</Text>
+                </View>
+              ) : null}
               <View style={styles.modalActions}>
                 <GlassButton label="Cancel" variant="ghost" onPress={() => setModalOpen(false)} style={styles.cancelButton} />
                 <GlassButton label="Open channel" disabled={username.length < 3} onPress={createChat} style={styles.openButton} />
@@ -280,6 +294,28 @@ const styles = StyleSheet.create({
   },
   fieldGroup: {
     gap: 12
+  },
+  errorBox: {
+    marginTop: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 107, 107, 0.55)",
+    backgroundColor: "rgba(255, 107, 107, 0.1)",
+    paddingHorizontal: 14,
+    paddingVertical: 12
+  },
+  errorTitle: {
+    color: "#ff8f8f",
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    fontWeight: "900",
+    marginBottom: 6
+  },
+  errorText: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    lineHeight: 18
   },
   label: {
     color: colors.faint,

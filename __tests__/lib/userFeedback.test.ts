@@ -35,6 +35,12 @@ describe("user feedback error mapping", () => {
     ).toBe("Usuario no existe o credenciales incorrectas. Revisa email y contraseña.");
   });
 
+  it("shows API message detail for non-sensitive user-facing errors", () => {
+    expect(getUserFacingErrorMessage({ code: "P0001", details: null, hint: null, message: "peer not found" })).toBe(
+      "No encontramos ese usuario. Revisa el nombre e inténtalo de nuevo.\n\nDetalle: peer not found"
+    );
+  });
+
   it("formats API code and message for inline UI observers", () => {
     expect(
       getApiErrorMessage({

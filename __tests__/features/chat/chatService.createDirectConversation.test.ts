@@ -75,7 +75,7 @@ describe("createDirectConversation guards and error translation", () => {
     );
   });
 
-  it("maps peer-not-found rpc errors to a user-facing message", async () => {
+  it("preserves peer-not-found rpc errors so the API message can be shown", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
     });
@@ -88,7 +88,10 @@ describe("createDirectConversation guards and error translation", () => {
       }
     });
 
-    await expect(createDirectConversation("user-1", "Peer_Name")).rejects.toThrow("No profile found for that username");
+    await expect(createDirectConversation("user-1", "Peer_Name")).rejects.toMatchObject({
+      code: "P0001",
+      message: "peer not found"
+    });
   });
 
   it("opens the direct conversation when lookup and rpc succeed", async () => {

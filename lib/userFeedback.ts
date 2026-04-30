@@ -32,6 +32,8 @@ const SUPABASE_CODE_MESSAGES: Record<string, string> = {
   pgrst204: "Falta una columna o recurso del esquema en Supabase."
 };
 
+const TECHNICAL_MESSAGE_DENYLIST = ["invalid login credentials"];
+
 function readStringField(source: unknown, field: keyof ErrorShape) {
   if (!source || typeof source !== "object" || !(field in source)) return "";
   const value = (source as ErrorShape)[field];
@@ -117,6 +119,7 @@ function isSessionIssue(text: string, code: string) {
 function withErrorDetail(userMessage: string, rawText: string) {
   const detail = rawText.trim();
   if (!detail) return userMessage;
+  if (TECHNICAL_MESSAGE_DENYLIST.includes(detail.toLowerCase())) return userMessage;
   if (userMessage.toLowerCase().includes(detail.toLowerCase())) return userMessage;
   return `${userMessage}\n\nDetalle: ${detail}`;
 }
@@ -160,7 +163,7 @@ export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo
     return withErrorDetail("Hay demasiadas solicitudes. Espera unos segundos e inténtalo de nuevo.", text);
   }
 
-  if (normalized.includes("no profile found for that username")) {
+  if (normalized.includes("peer not found") || normalized.includes("no profile found for that username")) {
     return withErrorDetail("No encontramos ese usuario. Revisa el nombre e inténtalo de nuevo.", text);
   }
 
