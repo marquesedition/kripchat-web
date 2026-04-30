@@ -53,7 +53,6 @@ export default function ChatScreen() {
   const [draft, setDraft] = useState("");
   const [selectedPacket, setSelectedPacket] = useState<SelectedPacket>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
-  const [destroyConfirmOpen, setDestroyConfirmOpen] = useState(false);
   const [destroyingConversation, setDestroyingConversation] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [desiredLocationOpen, setDesiredLocationOpen] = useState(false);
@@ -332,20 +331,41 @@ export default function ChatScreen() {
   }
 
   function confirmDestroyConversation() {
-    setSecurityOpen(false);
-    setDestroyConfirmOpen(true);
+    if (destroyingConversation) return;
+
+    const message = "Esto borra el canal para las dos cuentas, incluyendo mensajes, paquetes cifrados y adjuntos del servidor. No se puede deshacer.";
+
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      if (window.confirm(`Destruir conversacion\n\n${message}`)) {
+        destroyCurrentConversation().catch(() => undefined);
+      }
+      return;
+    }
+
+    Alert.alert("Destruir conversacion", message, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Destruir para todos",
+        style: "destructive",
+        onPress: () => {
+          destroyCurrentConversation().catch(() => undefined);
+        }
+      }
+    ]);
   }
 
   async function destroyCurrentConversation() {
     if (!conversationId || !userId) return;
     setDestroyingConversation(true);
+    setSecurityOpen(false);
+    unsubscribeActive();
+    useChatStore.getState().removeConversationLocally(conversationId);
+    router.replace("/(tabs)");
     try {
       await destroy(conversationId, userId);
-      setDestroyConfirmOpen(false);
-      unsubscribeActive();
-      router.replace("/(tabs)");
     } catch (error) {
       Alert.alert("No se pudo destruir", getUserFacingErrorMessage(error, "No se pudo borrar la conversacion del servidor."));
+      await useChatStore.getState().loadPreviews(userId).catch(() => undefined);
     } finally {
       setDestroyingConversation(false);
     }
@@ -580,37 +600,8 @@ export default function ChatScreen() {
               </View>
               {!highRiskEnabled ? <ActionRow icon="copy-outline" label="Copy channel id" onPress={() => conversationId && copyText(conversationId, "Channel id")} /> : null}
               <ActionRow icon="sync-outline" label="Reload encrypted packets" onPress={reloadThread} />
-              <ActionRow danger icon="trash-outline" label="Destruir conversacion para todos" onPress={confirmDestroyConversation} />
+              <ActionRow danger disabled={destroyingConversation} icon="trash-outline" label={destroyingConversation ? "Destruyendo conversacion..." : "Destruir conversacion para todos"} onPress={confirmDestroyConversation} />
               <ActionRow icon="exit-outline" label="Close channel" onPress={goBack} />
-            </Pressable>
-          </Pressable>
-        </Modal>
-
-        <Modal visible={destroyConfirmOpen} transparent animationType="fade" onRequestClose={() => setDestroyConfirmOpen(false)}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setDestroyConfirmOpen(false)}>
-            <Pressable style={styles.actionSheet} onPress={(event) => event.stopPropagation()}>
-              <View style={styles.sheetHandle} />
-              <Text style={styles.destroyTitle}>DESTRUIR CONVERSACION</Text>
-              <Text style={styles.destroyCopy}>
-                Esto borra el canal para todos, incluyendo mensajes, paquetes cifrados y adjuntos del servidor. No se puede deshacer.
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                disabled={destroyingConversation}
-                onPress={destroyCurrentConversation}
-                style={[styles.destroyButton, destroyingConversation && styles.destroyButtonDisabled]}
-              >
-                <Ionicons name="trash-outline" color="#fff" size={20} />
-                <Text style={styles.destroyButtonText}>{destroyingConversation ? "Destruyendo..." : "Destruir para todos"}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={destroyingConversation}
-                onPress={() => setDestroyConfirmOpen(false)}
-                style={styles.cancelDestroyButton}
-              >
-                <Text style={styles.cancelDestroyText}>Cancelar</Text>
-              </Pressable>
             </Pressable>
           </Pressable>
         </Modal>
@@ -619,9 +610,21 @@ export default function ChatScreen() {
   );
 }
 
-function ActionRow({ danger, icon, label, onPress }: { danger?: boolean; icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+function ActionRow({
+  danger,
+  disabled,
+  icon,
+  label,
+  onPress
+}: {
+  danger?: boolean;
+  disabled?: boolean;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.actionRow}>
+    <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.actionRow, disabled && styles.actionRowDisabled]}>
       <Ionicons name={icon} color={danger ? colors.danger : colors.green} size={20} />
       <Text style={[styles.actionLabel, danger && styles.actionLabelDanger]}>{label}</Text>
     </Pressable>
@@ -857,50 +860,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginBottom: 6
   },
-  destroyTitle: {
-    color: colors.danger,
-    fontFamily: fonts.mono,
-    fontSize: 15,
-    fontWeight: "900"
-  },
-  destroyCopy: {
-    color: colors.text,
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 8
-  },
-  destroyButton: {
-    minHeight: 52,
-    borderRadius: radii.md,
-    backgroundColor: colors.danger,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 10
-  },
-  destroyButtonDisabled: {
-    opacity: 0.55
-  },
-  destroyButtonText: {
-    color: "#fff",
-    fontFamily: fonts.mono,
-    fontSize: 13,
-    fontWeight: "900"
-  },
-  cancelDestroyButton: {
-    minHeight: 48,
-    borderRadius: radii.md,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceStrong
-  },
-  cancelDestroyText: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: "800"
-  },
   infoGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1019,6 +978,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(156, 194, 178, 0.10)",
     backgroundColor: "rgba(216, 232, 198, 0.045)"
+  },
+  actionRowDisabled: {
+    opacity: 0.55
   },
   actionLabel: {
     color: colors.text,
