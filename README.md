@@ -173,6 +173,8 @@ After the first successful production builds, you can submit them with EAS Submi
 
 Enable Realtime for `messages` and `encrypted_messages` so chat inserts arrive instantly. The migrations create RLS policies that only let authenticated conversation members read conversation metadata, and only recipient devices or senders read rows in `encrypted_messages`.
 
+The API surface used by the client is documented as OpenAPI/Swagger in [`docs/openapi.yaml`](docs/openapi.yaml). It covers Supabase Auth, PostgREST/RPC, Storage, Expo Push, and the Realtime channels used by the app.
+
 The current app keeps the original UI wired to the legacy `messages` flow for compatibility, while the new device-encrypted architecture lives under `src/lib`. New work should prefer:
 
 - `src/lib/supabase/profiles.ts`
