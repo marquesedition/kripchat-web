@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { GlassButton } from "@/components/GlassButton";
@@ -66,62 +66,64 @@ export default function LoginScreen() {
   return (
     <ScreenShell>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.wrap}>
-        <View style={styles.panel}>
-          <View style={styles.header}>
-            <View style={styles.logoBadge}>
-              <Ionicons name="shield-checkmark" size={26} color={colors.green} />
-            </View>
-            <Text style={styles.kicker}>KRIPCHAT</Text>
-            <Text style={styles.title}>Secure Channel Authentication</Text>
-            <Text style={styles.subtitle}>Sign in to access encrypted channels.</Text>
-          </View>
-
-          <GlassCard style={styles.card}>
-            <View style={styles.inputStack}>
-              <TextInput
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                placeholder="operator@email.com"
-                placeholderTextColor={colors.faint}
-                value={email}
-                onChangeText={(value) => {
-                  setEmail(value);
-                  if (authError) setAuthError(null);
-                }}
-                style={styles.input}
-              />
-              <TextInput
-                autoCapitalize="none"
-                autoComplete="password"
-                placeholder="password"
-                placeholderTextColor={colors.faint}
-                secureTextEntry
-                value={password}
-                onChangeText={(value) => {
-                  setPassword(value);
-                  if (authError) setAuthError(null);
-                }}
-                style={styles.input}
-              />
-            </View>
-            {authError ? (
-              <View style={styles.apiErrorBox}>
-                <Text style={styles.apiErrorLabel}>{authError.title}</Text>
-                <Text style={styles.apiErrorText}>{authError.message}</Text>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
+          <View style={styles.panel}>
+            <View style={styles.header}>
+              <View style={styles.logoBadge}>
+                <Ionicons name="shield-checkmark" size={24} color={colors.green} />
               </View>
-            ) : null}
-            <View style={styles.actionStack}>
-              <GlassButton label={loading ? "Authenticating..." : "Enter"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
-              <Link href="/(auth)/register" asChild>
-                <Pressable style={styles.linkButton}>
-                  <Text style={styles.linkText}>Create Secure Account</Text>
-                </Pressable>
-              </Link>
+              <Text style={styles.kicker}>KRIPCHAT</Text>
+              <Text style={styles.title}>Secure Channel Authentication</Text>
+              <Text style={styles.subtitle}>Sign in to access encrypted channels.</Text>
             </View>
-          </GlassCard>
-          <Text style={styles.footerText}>E2EE PROTOCOL ACTIVE</Text>
-        </View>
+
+            <GlassCard style={styles.card}>
+              <View style={styles.inputStack}>
+                <TextInput
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  placeholder="operator@email.com"
+                  placeholderTextColor={colors.faint}
+                  value={email}
+                  onChangeText={(value) => {
+                    setEmail(value);
+                    if (authError) setAuthError(null);
+                  }}
+                  style={styles.input}
+                />
+                <TextInput
+                  autoCapitalize="none"
+                  autoComplete="password"
+                  placeholder="password"
+                  placeholderTextColor={colors.faint}
+                  secureTextEntry
+                  value={password}
+                  onChangeText={(value) => {
+                    setPassword(value);
+                    if (authError) setAuthError(null);
+                  }}
+                  style={styles.input}
+                />
+              </View>
+              {authError ? (
+                <View style={styles.apiErrorBox}>
+                  <Text style={styles.apiErrorLabel}>{authError.title}</Text>
+                  <Text style={styles.apiErrorText}>{authError.message}</Text>
+                </View>
+              ) : null}
+              <View style={styles.actionStack}>
+                <GlassButton label={loading ? "Authenticating..." : "Enter"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
+                <Link href="/(auth)/register" asChild>
+                  <Pressable style={styles.linkButton}>
+                    <Text style={styles.linkText}>Create Secure Account</Text>
+                  </Pressable>
+                </Link>
+              </View>
+            </GlassCard>
+            <Text style={styles.footerText}>E2EE PROTOCOL ACTIVE</Text>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ScreenShell>
   );
@@ -129,10 +131,13 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   wrap: {
-    flex: 1,
+    flex: 1
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg
   },
   panel: {
     width: "100%",
@@ -140,18 +145,18 @@ const styles = StyleSheet.create({
     alignSelf: "center"
   },
   header: {
-    marginBottom: spacing.lg
+    marginBottom: spacing.md
   },
   logoBadge: {
-    width: 58,
-    height: 58,
+    width: 52,
+    height: 52,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     backgroundColor: "rgba(60,255,107,0.08)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14
+    marginBottom: 12
   },
   kicker: {
     color: colors.green,
@@ -164,8 +169,8 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 27,
+    lineHeight: 32,
     fontWeight: "700"
   },
   subtitle: {
@@ -175,7 +180,7 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   card: {
-    padding: spacing.lg,
+    padding: spacing.md,
     gap: 0
   },
   inputStack: {
@@ -208,7 +213,7 @@ const styles = StyleSheet.create({
     lineHeight: 18
   },
   input: {
-    minHeight: 54,
+    minHeight: 52,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -223,7 +228,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   primaryButton: {
-    minHeight: 48
+    minHeight: 52
   },
   linkText: {
     color: colors.blue,

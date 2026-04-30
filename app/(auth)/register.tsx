@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Link, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { GlassButton } from "@/components/GlassButton";
@@ -42,56 +42,58 @@ export default function RegisterScreen() {
   return (
     <ScreenShell>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.wrap}>
-        <View style={styles.panel}>
-          <View style={styles.header}>
-            <View style={styles.logoBadge}>
-              <Ionicons name="key-outline" size={24} color={colors.green} />
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
+          <View style={styles.panel}>
+            <View style={styles.header}>
+              <View style={styles.logoBadge}>
+                <Ionicons name="key-outline" size={23} color={colors.green} />
+              </View>
+              <Text style={styles.kicker}>NEW OPERATIVE</Text>
+              <Text style={styles.title}>Create Secure Account</Text>
             </View>
-            <Text style={styles.kicker}>NEW OPERATIVE</Text>
-            <Text style={styles.title}>Create Secure Account</Text>
+            <GlassCard style={styles.card}>
+              <View style={styles.inputStack}>
+                <TextInput
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  placeholder="operator@email.com"
+                  placeholderTextColor={colors.faint}
+                  value={email}
+                  onChangeText={setEmail}
+                  style={styles.input}
+                />
+                <TextInput
+                  autoCapitalize="none"
+                  placeholder="hacker_handle"
+                  placeholderTextColor={colors.faint}
+                  value={username}
+                  onChangeText={(value) => setUsername(normalizeUsername(value))}
+                  style={styles.input}
+                />
+                <TextInput
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  placeholder="password"
+                  placeholderTextColor={colors.faint}
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.actionStack}>
+                <GlassButton label={loading ? "Provisioning..." : "Register"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
+                <Text style={styles.notice}>Después del registro debes confirmar el email enviado por Supabase.</Text>
+                <Link href="/(auth)/login" asChild>
+                  <Pressable style={styles.linkButton}>
+                    <Text style={styles.linkText}>Already cleared? Log in</Text>
+                  </Pressable>
+                </Link>
+              </View>
+            </GlassCard>
           </View>
-          <GlassCard style={styles.card}>
-            <View style={styles.inputStack}>
-              <TextInput
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                placeholder="operator@email.com"
-                placeholderTextColor={colors.faint}
-                value={email}
-                onChangeText={setEmail}
-                style={styles.input}
-              />
-              <TextInput
-                autoCapitalize="none"
-                placeholder="hacker_handle"
-                placeholderTextColor={colors.faint}
-                value={username}
-                onChangeText={(value) => setUsername(normalizeUsername(value))}
-                style={styles.input}
-              />
-              <TextInput
-                autoCapitalize="none"
-                autoComplete="new-password"
-                placeholder="password"
-                placeholderTextColor={colors.faint}
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.actionStack}>
-              <GlassButton label={loading ? "Provisioning..." : "Register"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
-              <Text style={styles.notice}>Después del registro debes confirmar el email enviado por Supabase.</Text>
-              <Link href="/(auth)/login" asChild>
-                <Pressable style={styles.linkButton}>
-                  <Text style={styles.linkText}>Already cleared? Log in</Text>
-                </Pressable>
-              </Link>
-            </View>
-          </GlassCard>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ScreenShell>
   );
@@ -99,10 +101,13 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   wrap: {
-    flex: 1,
+    flex: 1
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg
   },
   panel: {
     width: "100%",
@@ -110,11 +115,11 @@ const styles = StyleSheet.create({
     alignSelf: "center"
   },
   header: {
-    marginBottom: spacing.lg
+    marginBottom: spacing.md
   },
   logoBadge: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.borderStrong,
@@ -133,12 +138,12 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 27,
+    lineHeight: 32,
     fontWeight: "700"
   },
   card: {
-    padding: spacing.lg,
+    padding: spacing.md,
     gap: 0
   },
   inputStack: {
@@ -149,7 +154,7 @@ const styles = StyleSheet.create({
     gap: 12
   },
   input: {
-    minHeight: 54,
+    minHeight: 52,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -164,7 +169,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   primaryButton: {
-    minHeight: 48
+    minHeight: 52
   },
   notice: {
     color: colors.muted,

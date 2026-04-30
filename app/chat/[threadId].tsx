@@ -632,24 +632,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingTop: 12,
-    paddingBottom: 12,
-    gap: 10,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
+    gap: 9,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 21,
     backgroundColor: colors.cream
   },
   headerIconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radii.md,
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "900"
   },
   status: {
@@ -674,8 +674,8 @@ const styles = StyleSheet.create({
   },
   messages: {
     flexGrow: 1,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md
+    paddingTop: 12,
+    paddingBottom: 12
   },
   empty: {
     color: colors.muted,
@@ -686,16 +686,16 @@ const styles = StyleSheet.create({
   composer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 12,
-    paddingHorizontal: spacing.md,
-    paddingTop: 14,
-    paddingBottom: spacing.lg,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border
   },
   utilityButton: {
-    width: 44,
-    height: 48,
+    width: 42,
+    height: 50,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radii.md,
@@ -713,14 +713,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.07)",
     color: colors.text,
     fontFamily: fonts.mono,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16
   },
   sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.cream
@@ -741,18 +741,22 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.66)"
   },
   actionSheet: {
-    margin: spacing.md,
-    borderRadius: radii.lg,
+    margin: 0,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderStrong,
     backgroundColor: "rgba(8, 18, 19, 0.98)",
-    padding: spacing.lg,
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
     gap: 10
   },
   intelSheet: {
     width: "100%",
     maxWidth: 760,
-    margin: 0
+    maxHeight: "88%"
   },
   intelHeader: {
     flexDirection: "row",
@@ -775,8 +779,9 @@ const styles = StyleSheet.create({
     gap: 8
   },
   toolButton: {
-    width: "31.5%",
-    minHeight: 78,
+    flexBasis: "31.5%",
+    flexGrow: 1,
+    minHeight: 84,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
@@ -826,7 +831,8 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   infoCell: {
-    width: "48%",
+    flexBasis: "48%",
+    flexGrow: 1,
     minHeight: 52,
     justifyContent: "center",
     borderRadius: radii.md,
@@ -898,12 +904,14 @@ const styles = StyleSheet.create({
   },
   segmentRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginBottom: 8
   },
   segment: {
     flex: 1,
-    minHeight: 38,
+    minWidth: 62,
+    minHeight: 42,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radii.md,
@@ -925,7 +933,7 @@ const styles = StyleSheet.create({
     color: colors.bg
   },
   actionRow: {
-    minHeight: 48,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,

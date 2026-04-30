@@ -18,7 +18,9 @@ export default function TabsLayout() {
           position: "absolute",
           backgroundColor: "rgba(22, 24, 29, 0.95)",
           borderTopColor: colors.border,
-          height: 72
+          height: 68,
+          paddingTop: 6,
+          paddingBottom: 8
         },
         tabBarActiveTintColor: colors.green,
         tabBarInactiveTintColor: colors.muted,

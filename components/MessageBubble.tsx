@@ -297,17 +297,17 @@ const styles = StyleSheet.create({
   row: {
     width: "100%",
     alignItems: "flex-start",
-    paddingHorizontal: 18,
-    marginVertical: 6
+    paddingHorizontal: 10,
+    marginVertical: 5
   },
   rowMine: {
     alignItems: "flex-end"
   },
   bubble: {
-    maxWidth: "76%",
+    maxWidth: "84%",
     borderRadius: radii.md,
-    paddingHorizontal: 18,
-    paddingVertical: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
     minWidth: 150
   },
@@ -323,9 +323,9 @@ const styles = StyleSheet.create({
   },
   body: {
     fontFamily: fonts.mono,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
-    lineHeight: 23
+    lineHeight: 22
   },
   decryptRail: {
     height: 3,
@@ -390,29 +390,29 @@ const styles = StyleSheet.create({
   metaDeck: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    maxWidth: "76%",
+    gap: 6,
+    maxWidth: "84%",
     marginTop: 5
   },
   metaDeckMine: {
     justifyContent: "flex-end"
   },
   senderCode: {
-    minWidth: 62,
+    minWidth: 54,
     borderRadius: radii.pill,
     backgroundColor: "rgba(31, 35, 41, 0.95)",
     color: colors.text,
     fontFamily: fonts.mono,
     fontSize: 10,
     fontWeight: "900",
-    paddingHorizontal: 11,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     textAlign: "center"
   },
   decryptPill: {
     borderRadius: radii.pill,
     backgroundColor: colors.panel,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4
   },
   decryptText: {

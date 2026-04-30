@@ -142,7 +142,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingBottom: spacing.xl
   },
   nav: {
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: spacing.md
+    gap: 10
   },
   brand: {
     flexDirection: "row",
@@ -193,14 +193,14 @@ const styles = StyleSheet.create({
   },
   navButton: {
     minHeight: 42,
-    minWidth: 112
+    minWidth: 104
   },
   hero: {
     width: "100%",
     maxWidth: 1180,
     alignSelf: "center",
     gap: spacing.xl,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.lg
   },
   heroWide: {
@@ -225,26 +225,24 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 58,
-    lineHeight: 64,
+    fontSize: 42,
+    lineHeight: 48,
     fontWeight: "900"
   },
   subtitle: {
     color: colors.muted,
-    fontSize: 18,
-    lineHeight: 28,
-    marginTop: 18,
+    fontSize: 16,
+    lineHeight: 24,
+    marginTop: 14,
     maxWidth: 620
   },
   heroActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
+    alignItems: "stretch",
     gap: 12,
-    marginTop: spacing.xl
+    marginTop: spacing.lg
   },
   primaryCta: {
-    minWidth: 190
+    width: "100%"
   },
   secondaryCta: {
     minHeight: 46,
@@ -287,14 +285,14 @@ const styles = StyleSheet.create({
   },
   heroVisual: {
     flex: 1,
-    minHeight: 380
+    minHeight: 320
   },
   heroVisualWide: {
     maxWidth: 480
   },
   devicePanel: {
-    minHeight: 380,
-    padding: spacing.lg
+    minHeight: 320,
+    padding: spacing.md
   },
   deviceHeader: {
     flexDirection: "row",
@@ -381,7 +379,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 1180,
     alignSelf: "center",
-    paddingTop: spacing.xl
+    paddingTop: spacing.lg
   },
   sectionKicker: {
     color: colors.green,
@@ -393,8 +391,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 23,
+    lineHeight: 29,
     fontWeight: "900",
     marginBottom: spacing.lg
   },
@@ -405,7 +403,7 @@ const styles = StyleSheet.create({
     flexDirection: "row"
   },
   featureCard: {
-    padding: spacing.lg
+    padding: spacing.md
   },
   featureCardWide: {
     flex: 1

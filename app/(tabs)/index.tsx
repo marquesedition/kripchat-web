@@ -93,7 +93,8 @@ export default function ChatListScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Contacts [{String(previews.length).padStart(2, "0")}]</Text>
+            <Text style={styles.title}>Chats</Text>
+            <Text style={styles.count}>{String(previews.length).padStart(2, "0")} channels</Text>
             <View style={styles.headerRule} />
           </View>
           <View style={styles.headerActions}>
@@ -179,17 +180,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingBottom: 16,
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border
   },
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
     letterSpacing: 0
+  },
+  count: {
+    color: colors.muted,
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    fontWeight: "800",
+    marginTop: 2
   },
   headerRule: {
     width: 64,
@@ -204,16 +213,16 @@ const styles = StyleSheet.create({
     gap: 12
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.green
   },
   secondaryIconButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: radii.md,
     alignItems: "center",
     justifyContent: "center",
@@ -224,7 +233,7 @@ const styles = StyleSheet.create({
   networkStrip: {
     flexDirection: "row",
     gap: 8,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border
@@ -240,7 +249,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl
   },
   list: {
-    paddingBottom: 110
+    paddingBottom: 96
   },
   emptyCard: {
     padding: spacing.lg,
@@ -261,15 +270,15 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: spacing.lg,
+    justifyContent: "flex-end",
+    padding: 0,
     backgroundColor: "rgba(0,0,0,0.58)"
   },
   modalCard: {
     width: "100%",
-    maxWidth: 520,
-    padding: spacing.lg
+    padding: spacing.md,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0
   },
   modalEyebrow: {
     color: colors.green,
@@ -337,19 +346,19 @@ const styles = StyleSheet.create({
   },
   modalActions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     gap: 10,
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     paddingTop: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(156, 194, 178, 0.14)"
   },
   cancelButton: {
     flex: 1,
-    maxWidth: 130
+    maxWidth: undefined
   },
   openButton: {
     flex: 1,
-    maxWidth: 170
+    maxWidth: undefined
   }
 });

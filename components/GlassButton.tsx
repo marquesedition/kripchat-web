@@ -51,14 +51,14 @@ function getFillStyle(variant: Props["variant"]) {
 
 const styles = StyleSheet.create({
   pressable: {
-    minHeight: 46,
+    minHeight: 52,
     borderRadius: radii.md,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.border
   },
   fill: {
-    minHeight: 46,
+    minHeight: 52,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 18,

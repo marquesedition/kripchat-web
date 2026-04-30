@@ -20,16 +20,15 @@ export function ChatListItem({ item }: { item: ChatPreview }) {
         <View style={styles.content}>
           <View style={styles.titleRow}>
             <Text style={styles.title} numberOfLines={1}>{opsCode}</Text>
-            <View style={styles.statusGroup}>
-              <View style={[styles.statusDot, item.peerOnline ? styles.onlineDot : styles.offlineDot]} />
-              <Text style={styles.status}>{item.peerOnline ? "ONLINE" : "OFFLINE"}</Text>
-            </View>
           </View>
           <Text style={styles.preview} numberOfLines={1}>
             {item.typing ? "incoming keystrokes..." : preview}
           </Text>
         </View>
-        <Text style={styles.time}>{time}</Text>
+        <View style={styles.trailing}>
+          <Text style={styles.time}>{time}</Text>
+          <View style={[styles.statusDot, item.peerOnline ? styles.onlineDot : styles.offlineDot]} />
+        </View>
       </View>
     </Pressable>
   );
@@ -42,10 +41,10 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    minHeight: 84,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: 11,
+    minHeight: 76,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.row
@@ -58,25 +57,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 10
+    gap: 8
   },
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     flex: 1
   },
   time: {
     color: colors.faint,
     fontFamily: fonts.mono,
-    fontSize: 11,
+    fontSize: 10,
     textTransform: "uppercase"
   },
-  statusGroup: {
-    flexDirection: "row",
+  trailing: {
     alignItems: "center",
-    gap: 7
+    gap: 8
   },
   statusDot: {
     width: 8,
@@ -89,15 +87,9 @@ const styles = StyleSheet.create({
   offlineDot: {
     backgroundColor: colors.warning
   },
-  status: {
-    color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    fontWeight: "800"
-  },
   preview: {
     marginTop: 4,
     color: colors.muted,
-    fontSize: 14
+    fontSize: 13
   }
 });

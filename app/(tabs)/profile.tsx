@@ -56,7 +56,7 @@ export default function ProfileScreen() {
 
   return (
     <ScreenShell>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.container}>
         <View style={styles.shell}>
           <View style={styles.header}>
             <Text style={styles.eyebrow}>OPERATOR IDENTITY</Text>
@@ -66,7 +66,7 @@ export default function ProfileScreen() {
 
           <GlassCard style={styles.card}>
             <View style={styles.identityBlock}>
-              <Avatar username={username} avatarUrl={avatarUrl} size={82} online />
+              <Avatar username={username} avatarUrl={avatarUrl} size={66} online />
               <View style={styles.avatarText}>
                 <Text style={styles.handle}>@{profile?.username ?? "operator"}</Text>
                 <Text style={styles.meta}>{presenceLabel}</Text>
@@ -121,8 +121,9 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: 96
   },
   shell: {
     width: "100%",
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: "900",
     letterSpacing: 0
   },
@@ -155,13 +156,13 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   card: {
-    padding: spacing.lg,
-    gap: spacing.lg
+    padding: spacing.md,
+    gap: spacing.md
   },
   identityBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.md,
+    gap: 12,
     paddingBottom: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   handle: {
     color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "900",
     letterSpacing: 0
   },
@@ -215,19 +216,16 @@ const styles = StyleSheet.create({
     fontSize: 15
   },
   actions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "flex-end",
-    gap: 12,
+    gap: 10,
     marginTop: spacing.md,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border
   },
   primaryAction: {
-    width: 190
+    width: "100%"
   },
   secondaryAction: {
-    width: 150
+    width: "100%"
   }
 });
