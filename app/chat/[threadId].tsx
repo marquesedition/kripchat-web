@@ -53,6 +53,8 @@ export default function ChatScreen() {
   const [draft, setDraft] = useState("");
   const [selectedPacket, setSelectedPacket] = useState<SelectedPacket>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
+  const [destroyConfirmOpen, setDestroyConfirmOpen] = useState(false);
+  const [destroyingConversation, setDestroyingConversation] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [desiredLocationOpen, setDesiredLocationOpen] = useState(false);
   const [desiredLocation, setDesiredLocation] = useState("");
@@ -330,30 +332,23 @@ export default function ChatScreen() {
   }
 
   function confirmDestroyConversation() {
-    Alert.alert(
-      "Destruir conversacion",
-      "Esto borra la conversacion completa para todos, incluyendo mensajes y adjuntos del servidor. No se puede deshacer.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Destruir",
-          style: "destructive",
-          onPress: () => {
-            destroyCurrentConversation().catch((error) =>
-              Alert.alert("No se pudo destruir", getUserFacingErrorMessage(error, "No se pudo borrar la conversacion del servidor."))
-            );
-          }
-        }
-      ]
-    );
+    setSecurityOpen(false);
+    setDestroyConfirmOpen(true);
   }
 
   async function destroyCurrentConversation() {
     if (!conversationId || !userId) return;
-    setSecurityOpen(false);
-    await destroy(conversationId, userId);
-    unsubscribeActive();
-    router.replace("/(tabs)");
+    setDestroyingConversation(true);
+    try {
+      await destroy(conversationId, userId);
+      setDestroyConfirmOpen(false);
+      unsubscribeActive();
+      router.replace("/(tabs)");
+    } catch (error) {
+      Alert.alert("No se pudo destruir", getUserFacingErrorMessage(error, "No se pudo borrar la conversacion del servidor."));
+    } finally {
+      setDestroyingConversation(false);
+    }
   }
 
   return (
@@ -439,7 +434,7 @@ export default function ChatScreen() {
 
         <Modal visible={selectedPacket !== null} transparent animationType="fade" onRequestClose={() => setSelectedPacket(null)}>
           <Pressable style={styles.intelBackdrop} onPress={() => setSelectedPacket(null)}>
-            <Pressable style={[styles.actionSheet, styles.intelSheet]} onPress={() => undefined}>
+            <Pressable style={[styles.actionSheet, styles.intelSheet]} onPress={(event) => event.stopPropagation()}>
               <View style={styles.intelHeader}>
                 <Text style={styles.sheetTitle}>PACKET INTEL</Text>
                 <Pressable accessibilityRole="button" onPress={() => setSelectedPacket(null)} style={styles.closeIntelButton}>
@@ -468,7 +463,7 @@ export default function ChatScreen() {
 
         <Modal visible={toolsOpen} transparent animationType="fade" onRequestClose={() => setToolsOpen(false)}>
           <Pressable style={styles.modalBackdrop} onPress={() => setToolsOpen(false)}>
-            <Pressable style={styles.actionSheet}>
+            <Pressable style={styles.actionSheet} onPress={(event) => event.stopPropagation()}>
               <View style={styles.sheetHandle} />
               <Text style={styles.sheetTitle}>SECURE PAYLOAD</Text>
               <View style={styles.toolGrid}>
@@ -485,7 +480,7 @@ export default function ChatScreen() {
 
         <Modal visible={desiredLocationOpen} transparent animationType="fade" onRequestClose={() => setDesiredLocationOpen(false)}>
           <Pressable style={styles.modalBackdrop} onPress={() => setDesiredLocationOpen(false)}>
-            <Pressable style={styles.actionSheet}>
+            <Pressable style={styles.actionSheet} onPress={(event) => event.stopPropagation()}>
               <View style={styles.sheetHandle} />
               <Text style={styles.sheetTitle}>DESIRED LOCATION</Text>
               <TextInput
@@ -503,7 +498,7 @@ export default function ChatScreen() {
 
         <Modal visible={securityOpen} transparent animationType="fade" onRequestClose={() => setSecurityOpen(false)}>
           <Pressable style={styles.modalBackdrop} onPress={() => setSecurityOpen(false)}>
-            <Pressable style={styles.actionSheet}>
+            <Pressable style={styles.actionSheet} onPress={(event) => event.stopPropagation()}>
               <View style={styles.sheetHandle} />
               <Text style={styles.sheetTitle}>CHAT INFORMATION</Text>
               <View style={styles.infoGrid}>
@@ -587,6 +582,35 @@ export default function ChatScreen() {
               <ActionRow icon="sync-outline" label="Reload encrypted packets" onPress={reloadThread} />
               <ActionRow danger icon="trash-outline" label="Destruir conversacion para todos" onPress={confirmDestroyConversation} />
               <ActionRow icon="exit-outline" label="Close channel" onPress={goBack} />
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal visible={destroyConfirmOpen} transparent animationType="fade" onRequestClose={() => setDestroyConfirmOpen(false)}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setDestroyConfirmOpen(false)}>
+            <Pressable style={styles.actionSheet} onPress={(event) => event.stopPropagation()}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.destroyTitle}>DESTRUIR CONVERSACION</Text>
+              <Text style={styles.destroyCopy}>
+                Esto borra el canal para todos, incluyendo mensajes, paquetes cifrados y adjuntos del servidor. No se puede deshacer.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                disabled={destroyingConversation}
+                onPress={destroyCurrentConversation}
+                style={[styles.destroyButton, destroyingConversation && styles.destroyButtonDisabled]}
+              >
+                <Ionicons name="trash-outline" color="#fff" size={20} />
+                <Text style={styles.destroyButtonText}>{destroyingConversation ? "Destruyendo..." : "Destruir para todos"}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={destroyingConversation}
+                onPress={() => setDestroyConfirmOpen(false)}
+                style={styles.cancelDestroyButton}
+              >
+                <Text style={styles.cancelDestroyText}>Cancelar</Text>
+              </Pressable>
             </Pressable>
           </Pressable>
         </Modal>
@@ -832,6 +856,50 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
     marginBottom: 6
+  },
+  destroyTitle: {
+    color: colors.danger,
+    fontFamily: fonts.mono,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  destroyCopy: {
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 8
+  },
+  destroyButton: {
+    minHeight: 52,
+    borderRadius: radii.md,
+    backgroundColor: colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 10
+  },
+  destroyButtonDisabled: {
+    opacity: 0.55
+  },
+  destroyButtonText: {
+    color: "#fff",
+    fontFamily: fonts.mono,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  cancelDestroyButton: {
+    minHeight: 48,
+    borderRadius: radii.md,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceStrong
+  },
+  cancelDestroyText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "800"
   },
   infoGrid: {
     flexDirection: "row",
