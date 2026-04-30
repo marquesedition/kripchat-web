@@ -393,9 +393,9 @@ export async function decryptDeviceMessageRecord(row: EncryptedMessageRow, curre
 }
 
 export async function destroyConversation(conversationId: string) {
-  await logSecurityEvent(null, conversationId, "destroy_conversation_requested", {});
-  await removeConversationAttachments(conversationId);
-  const { error } = await supabase.from("conversations").delete().eq("id", conversationId);
+  const { error } = await supabase.rpc("destroy_conversation_for_everyone", {
+    p_conversation_id: conversationId
+  });
   if (error) throw error;
   peerPublicKeyCache.forEach((_value, key) => {
     if (key.endsWith(`:${conversationId}`)) peerPublicKeyCache.delete(key);

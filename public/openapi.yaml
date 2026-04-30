@@ -384,6 +384,32 @@ paths:
               schema:
                 type: string
                 format: uuid
+  /rest/v1/rpc/destroy_conversation_for_everyone:
+    post:
+      tags: [Conversations]
+      summary: Destroy a conversation for all members
+      description: Deletes the conversation, participants, legacy messages, device-encrypted messages, related accepted request state, and encrypted attachment objects for the conversation.
+      security:
+        - SupabaseJwt: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_conversation_id]
+              properties:
+                p_conversation_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Destroyed conversation UUID
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
   /rest/v1/rpc/list_chat_previews:
     post:
       tags: [Conversations]
