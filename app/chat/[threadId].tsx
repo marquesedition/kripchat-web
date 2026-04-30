@@ -42,6 +42,7 @@ export default function ChatScreen() {
   const previews = useChatStore((state) => state.previews);
   const messages = useChatStore((state) => (conversationId ? state.messagesByConversation[conversationId] ?? EMPTY_MESSAGES : EMPTY_MESSAGES));
   const loadMessages = useChatStore((state) => state.loadMessages);
+  const previewLoading = useChatStore((state) => state.previewLoading);
   const loadOlderMessages = useChatStore((state) => state.loadOlderMessages);
   const send = useChatStore((state) => state.send);
   const destroy = useChatStore((state) => state.destroy);
@@ -69,6 +70,14 @@ export default function ChatScreen() {
   const activeAutoDestroySeconds = peerPreview?.conversation.auto_destroy_seconds ?? null;
   const autoDestroyLabel = formatAutoDestroyLabel(activeAutoDestroySeconds, peerPreview?.conversation.auto_destroy_at);
   const highRiskEnabled = Boolean(peerPreview?.conversation.high_risk_enabled);
+
+  useEffect(() => {
+    if (!conversationId || !userId || previewLoading || !previews.length) return;
+    if (!peerPreview) {
+      Alert.alert("Conversación destruida", "Este canal fue eliminado para todos.");
+      router.replace("/(tabs)");
+    }
+  }, [conversationId, peerPreview, previewLoading, previews.length, userId]);
 
   function goBack() {
     if (router.canGoBack()) {

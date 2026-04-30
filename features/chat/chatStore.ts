@@ -40,6 +40,7 @@ type ChatState = {
   openDirect: (userId: string, username: string) => Promise<DirectConversationRequestResult>;
   acceptRequest: (requestId: string, userId: string) => Promise<string>;
   rejectRequest: (requestId: string, userId: string) => Promise<void>;
+  removeConversationLocally: (conversationId: string) => void;
   subscribeToConversation: (conversationId: string, userId: string) => void;
   unsubscribeActive: () => void;
 };
@@ -163,6 +164,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     await get().loadRequests();
   },
 
+  removeConversationLocally: (conversationId) => {
+    set((state) => {
+      const { [conversationId]: _removed, ...messagesByConversation } = state.messagesByConversation;
+      return {
+        messagesByConversation,
+        previews: state.previews.filter((item) => item.conversation.id !== conversationId)
+      };
+    });
+  },
+
   destroy: async (conversationId, userId) => {
     await destroyConversation(conversationId);
     set((state) => {
@@ -187,6 +198,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   subscribeToConversation: (conversationId, userId) => {
     get().unsubscribeActive();
+    const removeCurrentConversation = () => {
+      get().removeConversationLocally(conversationId);
+    };
+
     getDeviceId()
       .then((deviceId) => {
         if (!deviceId) return;
@@ -219,6 +234,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
               }));
             }
           )
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "encrypted_messages",
+              filter: `conversation_id=eq.${conversationId}`
+            },
+            async (payload) => {
+              const raw = payload.new as Record<string, unknown>;
+              if (raw.recipient_device_id !== deviceId) return;
+              const next = await decryptDeviceMessageRecord(raw as EncryptedMessageRow, deviceId);
+              set((state) => ({
+                messagesByConversation: {
+                  ...state.messagesByConversation,
+                  [conversationId]: dedupeMessages(
+                    (state.messagesByConversation[conversationId] ?? []).map((message) =>
+                      message.id === next.id || message.client_id === next.client_id ? next : message
+                    )
+                  )
+                }
+              }));
+            }
+          )
           .subscribe();
 
         set((state) => ({ activeChannels: [...state.activeChannels, channel] }));
@@ -227,6 +266,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     const channel = supabase
       .channel(`legacy-conversation:${conversationId}`)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "conversations", filter: `id=eq.${conversationId}` }, removeCurrentConversation)
       .on(
         "postgres_changes",
         {

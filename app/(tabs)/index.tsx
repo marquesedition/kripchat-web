@@ -14,6 +14,24 @@ import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { normalizeUsername } from "@/lib/validation";
 import { showBrowserMessageNotification } from "@/services/notifications";
 
+type RealtimePayload = {
+  new?: {
+    id?: string;
+    conversation_id?: string;
+    sender_id?: string;
+    sender_user_id?: string;
+    recipient_id?: string;
+    requester_id?: string;
+    kind?: string;
+    message_type?: string;
+    status?: string;
+  };
+  old?: {
+    id?: string;
+    conversation_id?: string;
+  };
+};
+
 export default function ChatListScreen() {
   const userId = useAuthStore((state) => state.session?.user.id);
   const previews = useChatStore((state) => state.previews);
@@ -47,16 +65,16 @@ export default function ChatListScreen() {
   useEffect(() => {
     if (!userId) return undefined;
 
-    const scheduleRefresh = () => {
+    const scheduleRefresh = (delay = 0) => {
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {
         Promise.all([loadPreviews(userId), loadRequests()]).catch(() => undefined);
-      }, 250);
+      }, delay);
     };
 
-    const handleIncomingMessage = (payload: { new: { conversation_id?: string; sender_id?: string; sender_user_id?: string; kind?: string; message_type?: string } }) => {
+    const handleIncomingMessage = (payload: RealtimePayload) => {
       scheduleRefresh();
-      const message = payload.new;
+      const message = payload.new ?? {};
       const senderId = message.sender_id ?? message.sender_user_id;
       const kind = message.kind ?? message.message_type;
       if (!message.conversation_id || senderId === userId) return;
@@ -68,13 +86,38 @@ export default function ChatListScreen() {
       });
     };
 
+    const handleInboxMutation = () => {
+      scheduleRefresh();
+    };
+
+    const handleChatRequestMutation = (payload: RealtimePayload) => {
+      scheduleRefresh();
+      const request = payload.new;
+      if (!request) return;
+
+      if (request.recipient_id === userId && request.status === "pending") {
+        showBrowserMessageNotification({
+          title: "KripChat",
+          body: "Nueva solicitud de chat recibida.",
+          conversationId: request.conversation_id ?? ""
+        });
+      }
+
+      if (request.requester_id === userId && request.status === "rejected") {
+        Alert.alert("Solicitud rechazada", "La otra persona rechazó tu solicitud de chat.");
+      }
+    };
+
     const channel = supabase
       .channel(`inbox:${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, handleIncomingMessage)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "encrypted_messages" }, handleIncomingMessage)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversation_participants" }, scheduleRefresh)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_requests" }, scheduleRefresh)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_requests" }, scheduleRefresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "encrypted_messages" }, handleInboxMutation)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "conversations" }, handleInboxMutation)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversation_participants" }, handleInboxMutation)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "conversation_participants" }, handleInboxMutation)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_requests" }, handleChatRequestMutation)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_requests" }, handleChatRequestMutation)
       .subscribe();
 
     return () => {
