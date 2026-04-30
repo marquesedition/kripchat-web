@@ -6,7 +6,7 @@ import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { isEmailNotConfirmedError } from "@/features/auth/authService";
-import { getApiErrorMessage, getUserFacingErrorMessage } from "@/lib/userFeedback";
+import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { useAuthStore } from "@/features/auth/authStore";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -15,14 +15,14 @@ import { isValidEmail } from "@/lib/validation";
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState<{ title: string; message: string; apiMessage?: string } | null>(null);
+  const [authError, setAuthError] = useState<{ title: string; message: string } | null>(null);
   const params = useLocalSearchParams<{ confirmed?: string; confirm_error?: string }>();
   const loading = useAuthStore((state) => state.loading);
   const signIn = useAuthStore((state) => state.signIn);
 
-  function showLoginError(title: string, message: string, apiMessage?: string) {
-    setAuthError({ title, message, apiMessage });
-    Alert.alert(title, apiMessage ? `${message}\n\n${apiMessage}` : message);
+  function showLoginError(title: string, message: string) {
+    setAuthError({ title, message });
+    Alert.alert(title, message);
   }
 
   useEffect(() => {
@@ -55,12 +55,11 @@ export default function LoginScreen() {
       await signIn(email, password);
       router.replace("/(tabs)");
     } catch (error) {
-      const apiErrorMessage = getApiErrorMessage(error);
       if (isEmailNotConfirmedError(error)) {
-        showLoginError("Email confirmation required", "Confirma tu email desde el mensaje de Supabase y luego inicia sesión.", apiErrorMessage);
+        showLoginError("Email confirmation required", "Confirma tu email desde el mensaje de Supabase y luego inicia sesión.");
         return;
       }
-      showLoginError("Error de autenticación", getUserFacingErrorMessage(error, "No se pudo iniciar sesión."), apiErrorMessage);
+      showLoginError("Error de autenticación", getUserFacingErrorMessage(error, "No se pudo iniciar sesión."));
     }
   }
 
@@ -110,7 +109,6 @@ export default function LoginScreen() {
               <View style={styles.apiErrorBox}>
                 <Text style={styles.apiErrorLabel}>{authError.title}</Text>
                 <Text style={styles.apiErrorText}>{authError.message}</Text>
-                {authError.apiMessage ? <Text style={styles.apiErrorRaw}>{authError.apiMessage}</Text> : null}
               </View>
             ) : null}
             <View style={styles.actionStack}>
@@ -208,13 +206,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     fontSize: 12,
     lineHeight: 18
-  },
-  apiErrorRaw: {
-    color: "#ffb4b4",
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: 8
   },
   input: {
     minHeight: 54,

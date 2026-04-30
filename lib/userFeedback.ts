@@ -128,7 +128,7 @@ export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo
   const normalized = text.toLowerCase();
 
   if (code && SUPABASE_CODE_MESSAGES[code]) {
-    if (code === "over_email_send_rate_limit") return SUPABASE_CODE_MESSAGES[code];
+    if (code === "over_email_send_rate_limit" || code === "invalid_credentials") return SUPABASE_CODE_MESSAGES[code];
     return withErrorDetail(SUPABASE_CODE_MESSAGES[code], text);
   }
 
@@ -141,7 +141,7 @@ export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo
   }
 
   if (normalized.includes("invalid login credentials")) {
-    return withErrorDetail("Credenciales incorrectas. Revisa email y contraseña.", text);
+    return "Usuario no existe o credenciales incorrectas. Revisa email y contraseña.";
   }
 
   if (isSessionIssue(text, code) || status === "401") {
