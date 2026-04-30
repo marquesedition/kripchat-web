@@ -33,7 +33,11 @@ export function GlassButton({ children, label, disabled, variant = "primary", st
       style={[styles.pressable, disabled && styles.disabled, animatedStyle, style]}
     >
       <View style={[styles.fill, getFillStyle(variant), variant === "ghost" && styles.ghost]}>
-        {children ?? <Text style={[styles.label, variant === "danger" && styles.dangerLabel]}>{label}</Text>}
+        {children ?? (
+          <Text style={[styles.label, variant === "ghost" && styles.ghostLabel, variant === "danger" && styles.dangerLabel]}>
+            {label}
+          </Text>
+        )}
       </View>
     </AnimatedPressable>
   );
@@ -83,5 +87,8 @@ const styles = StyleSheet.create({
   },
   dangerLabel: {
     color: "#fff"
+  },
+  ghostLabel: {
+    color: colors.text
   }
 });
