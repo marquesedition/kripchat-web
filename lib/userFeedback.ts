@@ -179,6 +179,10 @@ export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo
     return withErrorDetail("El otro usuario todavía no completó su configuración segura. Pídele que cierre y abra sesión.", text);
   }
 
+  if (normalized.includes("the other user has no registered e2ee devices yet")) {
+    return withErrorDetail("El otro usuario todavía no tiene un dispositivo seguro registrado. Pídele que cierre y abra sesión.", text);
+  }
+
   if (normalized.includes("unable to download encrypted payload")) {
     return withErrorDetail("No se pudo descargar el adjunto cifrado. Inténtalo de nuevo.", text);
   }

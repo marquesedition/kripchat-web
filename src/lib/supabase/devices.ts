@@ -16,14 +16,14 @@ export type DeviceRecord = {
 export async function registerCurrentDevice(userId: string, deviceName = "Current device") {
   let deviceId = await getDeviceId();
   deviceId = deviceId ?? createClientUuid();
-  const identity = await localCryptoProvider.generateIdentityKeyPair(deviceId ?? undefined);
+  const identity = await localCryptoProvider.exportPublicBundle(deviceId ?? undefined);
   const signedPreKey = await localCryptoProvider.generateSignedPreKey(`${deviceId ?? "pending"}:signed-prekey`);
 
   const payload = {
     id: deviceId,
     user_id: userId,
     device_name: deviceName,
-    public_identity_key: identity.publicKey,
+    public_identity_key: identity.publicIdentityKey,
     public_signed_prekey: signedPreKey.publicKey,
     last_seen_at: new Date().toISOString(),
     revoked_at: null

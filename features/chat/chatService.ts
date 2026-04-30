@@ -9,6 +9,9 @@ import {
 import { deriveConversationSharedKey, ensureE2EEIdentity, isV2EncryptedEnvelope } from "@/lib/e2ee";
 import { sanitizeMessage } from "@/lib/validation";
 import type { ChatPreview, ChatRequest, Conversation, Message, MessageKind, Profile } from "@/features/chat/types";
+import { localCryptoProvider } from "@/src/lib/crypto";
+import { getDeviceId } from "@/src/lib/storage/secureStorage";
+import { getUserDevices, registerCurrentDevice, type DeviceRecord } from "@/src/lib/supabase/devices";
 import { sendExpoPushNotification } from "@/services/notifications";
 
 const ATTACHMENT_BUCKET = "chat-attachments";
@@ -65,6 +68,28 @@ type RequestRpcRow = {
   peer_created_at: string;
 };
 
+export type EncryptedMessageRow = {
+  id: string;
+  conversation_id: string;
+  sender_user_id: string;
+  sender_device_id: string;
+  recipient_user_id: string;
+  recipient_device_id: string;
+  message_type: MessageKind;
+  ciphertext: string;
+  crypto_metadata: Record<string, unknown> | null;
+  encrypted_file_url: string | null;
+  file_type: string | null;
+  file_size: number | null;
+  encrypted_file_key: string | null;
+  sent_at: string;
+  delivered_at: string | null;
+  read_at: string | null;
+  expires_at: string | null;
+  deleted_for_all_at: string | null;
+  created_at: string;
+};
+
 export type DirectConversationRequestResult = {
   requestId: string | null;
   status: "pending" | "accepted" | "rejected";
@@ -117,6 +142,9 @@ export async function fetchChatRequests(): Promise<ChatRequest[]> {
 
 export async function fetchMessages(conversationId: string, currentUserId: string, before?: string): Promise<Message[]> {
   await destroyExpiredConversations();
+  const deviceMessages = await fetchDeviceMessages(conversationId, currentUserId, before);
+  if (deviceMessages.length || before) return deviceMessages;
+
   let query = supabase
     .from("messages")
     .select("*")
@@ -159,35 +187,9 @@ export async function sendMessage(conversationId: string, senderId: string, payl
     created_at: new Date().toISOString()
   };
 
-  const sharedKey = await resolveConversationSharedKey(conversationId, senderId, true);
-  const encryptedBody = encryptTextForConversation(clean, sharedKey);
-  const encryptedLocationLabel = payload.locationLabel
-    ? encryptTextForConversation(payload.locationLabel, sharedKey)
-    : null;
-
-  const { data, error } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id: conversationId,
-      sender_id: senderId,
-      body: encryptedBody,
-      client_id: clientId,
-      status: "sent",
-      kind,
-      attachment_path: payload.attachmentPath ?? null,
-      attachment_name: payload.attachmentName ?? null,
-      attachment_mime: payload.attachmentMime ?? null,
-      attachment_size: payload.attachmentSize ?? null,
-      location_lat: payload.locationLat ?? null,
-      location_lng: payload.locationLng ?? null,
-      location_label: encryptedLocationLabel
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
+  const saved = await sendDeviceEncryptedMessageCopies(conversationId, senderId, clean, kind, payload, clientId);
   notifyPeerOfMessage(conversationId, senderId, kind).catch(() => undefined);
-  return { optimistic, saved: await decryptMessageRecord(data as Message, senderId, undefined, sharedKey) };
+  return { optimistic, saved: saved ?? { ...optimistic, status: "sent" as const } };
 }
 
 export async function uploadChatAttachment(input: UploadAttachmentInput) {
@@ -217,6 +219,176 @@ export async function uploadChatAttachment(input: UploadAttachmentInput) {
     name: safeName,
     mimeType: input.mimeType,
     size: blob.size
+  };
+}
+
+async function sendDeviceEncryptedMessageCopies(
+  conversationId: string,
+  senderId: string,
+  body: string,
+  kind: MessageKind,
+  payload: SendMessagePayload,
+  clientId: string
+) {
+  const senderDevice = await ensureCurrentDeviceRegistered(senderId);
+  const memberIds = await fetchConversationMemberIds(conversationId);
+  const targetUserIds = Array.from(new Set(memberIds.length ? memberIds : [senderId]));
+  if (!targetUserIds.includes(senderId)) targetUserIds.push(senderId);
+
+  const devicesByUser = await Promise.all(
+    targetUserIds.map(async (userId) => ({
+      userId,
+      devices: await getUserDevices(userId)
+    }))
+  );
+  const missingRecipient = devicesByUser.find(({ userId, devices }) => userId !== senderId && devices.length === 0);
+  if (missingRecipient) {
+    throw new Error("The other user has no registered E2EE devices yet. Ask them to sign in again.");
+  }
+  const recipientDevices = devicesByUser.flatMap(({ devices }) => devices);
+
+  if (!recipientDevices.some((device) => device.id === senderDevice.id)) {
+    recipientDevices.push(senderDevice);
+  }
+
+  if (!recipientDevices.length) {
+    throw new Error("No active devices are available for this conversation.");
+  }
+
+  const rows = await Promise.all(
+    recipientDevices.map(async (device) => {
+      const encrypted = await localCryptoProvider.encryptMessage({
+        plaintext: body,
+        recipientPublicKey: device.public_identity_key,
+        senderUserId: senderId,
+        senderDeviceId: senderDevice.id,
+        recipientUserId: device.user_id,
+        recipientDeviceId: device.id
+      });
+
+      return {
+        conversation_id: conversationId,
+        sender_user_id: senderId,
+        sender_device_id: senderDevice.id,
+        recipient_user_id: device.user_id,
+        recipient_device_id: device.id,
+        message_type: kind,
+        ciphertext: encrypted.ciphertext,
+        crypto_metadata: {
+          ...encrypted.cryptoMetadata,
+          clientId,
+          attachmentName: payload.attachmentName ?? null,
+          attachmentMime: payload.attachmentMime ?? null,
+          locationLat: payload.locationLat ?? null,
+          locationLng: payload.locationLng ?? null,
+          locationLabel: payload.locationLabel ?? null
+        },
+        encrypted_file_url: payload.attachmentPath ?? null,
+        file_type: payload.attachmentMime ?? null,
+        file_size: payload.attachmentSize ?? null,
+        encrypted_file_key: null
+      };
+    })
+  );
+
+  const { data, error } = await supabase.from("encrypted_messages").insert(rows).select("*");
+  if (error) throw error;
+
+  const currentDeviceId = senderDevice.id;
+  const currentDeviceRow = ((data ?? []) as EncryptedMessageRow[]).find((row) => row.recipient_device_id === currentDeviceId);
+  return currentDeviceRow ? decryptDeviceMessageRecord(currentDeviceRow, currentDeviceId) : null;
+}
+
+async function fetchDeviceMessages(conversationId: string, currentUserId: string, before?: string) {
+  const currentDeviceId = await getDeviceId();
+  if (!currentDeviceId) return [];
+  let query = supabase
+    .from("encrypted_messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .eq("recipient_device_id", currentDeviceId)
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  if (before) query = query.lt("created_at", before);
+
+  const { data, error } = await query;
+  if (error) {
+    if (isMissingEncryptedMessagesTable(error)) return [];
+    throw error;
+  }
+
+  const messages = await Promise.all(
+    ((data ?? []) as EncryptedMessageRow[]).map((row) => decryptDeviceMessageRecord(row, currentDeviceId))
+  );
+  return messages.reverse();
+}
+
+async function fetchLastDeviceMessageForConversation(conversationId: string, currentUserId: string) {
+  const deviceId = await getDeviceId();
+  if (!deviceId) return null;
+
+  const { data, error } = await supabase
+    .from("encrypted_messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .eq("recipient_device_id", deviceId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    if (isMissingEncryptedMessagesTable(error)) return null;
+    throw error;
+  }
+  if (!data) return null;
+  return decryptDeviceMessageRecord(data as EncryptedMessageRow, deviceId);
+}
+
+export async function decryptDeviceMessageRecord(row: EncryptedMessageRow, currentDeviceId: string): Promise<Message> {
+  const metadata = (row.crypto_metadata ?? {}) as Record<string, unknown>;
+  const nonce = typeof metadata.nonce === "string" ? metadata.nonce : "";
+  const senderPublicKey = typeof metadata.senderPublicKey === "string" ? metadata.senderPublicKey : "";
+  const clientId = typeof metadata.clientId === "string" ? metadata.clientId : row.id;
+  const attachmentName = typeof metadata.attachmentName === "string" ? metadata.attachmentName : null;
+  const attachmentMime = typeof metadata.attachmentMime === "string" ? metadata.attachmentMime : row.file_type;
+  const locationLat = typeof metadata.locationLat === "number" ? metadata.locationLat : null;
+  const locationLng = typeof metadata.locationLng === "number" ? metadata.locationLng : null;
+  const locationLabel = typeof metadata.locationLabel === "string" ? metadata.locationLabel : null;
+  let body = "[encrypted packet]";
+
+  if (row.deleted_for_all_at) {
+    body = "[deleted]";
+  } else if (nonce && senderPublicKey) {
+    try {
+      body = await localCryptoProvider.decryptMessage({
+        ciphertext: row.ciphertext,
+        nonce,
+        senderPublicKey,
+        deviceScope: currentDeviceId
+      });
+    } catch {
+      body = "[encrypted packet]";
+    }
+  }
+
+  return {
+    id: row.id,
+    conversation_id: row.conversation_id,
+    sender_id: row.sender_user_id,
+    body,
+    encrypted_body: row.ciphertext,
+    client_id: clientId,
+    status: row.read_at ? "delivered" : row.delivered_at ? "delivered" : "sent",
+    kind: row.message_type,
+    attachment_path: row.encrypted_file_url,
+    attachment_name: attachmentName,
+    attachment_mime: attachmentMime,
+    attachment_size: row.file_size,
+    location_lat: locationLat,
+    location_lng: locationLng,
+    location_label: locationLabel,
+    encrypted_location_label: null,
+    created_at: row.created_at ?? row.sent_at
   };
 }
 
@@ -472,12 +644,13 @@ async function mapPreviewsFromRpcRows(rows: PreviewRpcRow[], currentUserId: stri
               peer.e2ee_public_key
             )
           : null;
+      const deviceLastMessage = await fetchLastDeviceMessageForConversation(row.conversation_id, currentUserId);
 
       return {
         conversation,
         peer,
         peerOnline: isOnline(peer.online_at),
-        lastMessage
+        lastMessage: deviceLastMessage ?? lastMessage
       } satisfies ChatPreview;
     })
   );
@@ -521,7 +694,9 @@ async function fetchChatPreviewsFallback(currentUserId: string): Promise<ChatPre
   return Promise.all(
     conversations.map(async (conversation) => {
       const peer = await fetchConversationPeer(conversation.id, currentUserId);
-      const lastMessage = await fetchLastMessageForConversation(conversation.id, currentUserId, peer?.e2ee_public_key ?? null);
+      const lastMessage =
+        (await fetchLastDeviceMessageForConversation(conversation.id, currentUserId)) ??
+        (await fetchLastMessageForConversation(conversation.id, currentUserId, peer?.e2ee_public_key ?? null));
       return {
         conversation,
         peer,
@@ -552,6 +727,26 @@ async function fetchConversationPeer(conversationId: string, currentUserId: stri
     .eq("conversation_id", conversationId);
   if (error) throw error;
   return findPeerProfile((data ?? []) as Array<{ conversation_id?: string; profile_id: string; profile: Profile | Profile[] | null }>, conversationId, currentUserId);
+}
+
+async function fetchConversationMemberIds(conversationId: string) {
+  const { data, error } = await supabase
+    .from("conversation_participants")
+    .select("profile_id")
+    .eq("conversation_id", conversationId);
+  if (error) throw error;
+  return ((data ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id);
+}
+
+async function ensureCurrentDeviceRegistered(userId: string): Promise<DeviceRecord> {
+  const existingDeviceId = await getDeviceId();
+  if (existingDeviceId) {
+    const devices = await getUserDevices(userId);
+    const existing = devices.find((device) => device.id === existingDeviceId);
+    if (existing) return existing;
+  }
+
+  return registerCurrentDevice(userId, "KripChat device");
 }
 
 async function resolvePeerPublicKey(conversationId: string, currentUserId: string, providedPeerPublicKey?: string | null, forceRefresh = false) {
@@ -611,6 +806,19 @@ function isMissingChatRequestsRpc(error: unknown) {
   const text = `${message} ${details}`;
 
   return code === "pgrst202" || status === 404 || text.includes("could not find the function") || text.includes("not found");
+}
+
+function isMissingEncryptedMessagesTable(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const maybeError = error as { code?: unknown; message?: unknown; details?: unknown; status?: unknown };
+  const code = String(maybeError.code ?? "").toLowerCase();
+  const status = Number(maybeError.status ?? 0);
+  const message = String(maybeError.message ?? "").toLowerCase();
+  const details = String(maybeError.details ?? "").toLowerCase();
+  const text = `${message} ${details}`;
+
+  return code === "pgrst204" || status === 404 || text.includes("encrypted_messages") || text.includes("schema cache");
 }
 
 async function requireConversationSharedKey(conversationId: string, currentUserId: string) {

@@ -2,6 +2,7 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 import { create } from "zustand";
 import {
   acceptChatRequest,
+  decryptDeviceMessageRecord,
   decryptMessageRecord,
   destroyConversation,
   fetchChatRequests,
@@ -13,10 +14,12 @@ import {
   setConversationAutoDestroy,
   setConversationHighRisk,
   type DirectConversationRequestResult,
+  type EncryptedMessageRow,
   type SendMessagePayload
 } from "@/features/chat/chatService";
 import type { ChatPreview, ChatRequest, Message } from "@/features/chat/types";
 import { supabase } from "@/lib/supabase";
+import { getDeviceId } from "@/src/lib/storage/secureStorage";
 import { showBrowserMessageNotification } from "@/services/notifications";
 
 type ChatState = {
@@ -25,7 +28,7 @@ type ChatState = {
   messagesByConversation: Record<string, Message[]>;
   previewLoading: boolean;
   messageLoading: boolean;
-  activeChannel: RealtimeChannel | null;
+  activeChannels: RealtimeChannel[];
   loadPreviews: (userId: string) => Promise<void>;
   loadRequests: () => Promise<void>;
   loadMessages: (conversationId: string, userId: string) => Promise<void>;
@@ -47,7 +50,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messagesByConversation: {},
   previewLoading: false,
   messageLoading: false,
-  activeChannel: null,
+  activeChannels: [],
 
   loadPreviews: async (userId) => {
     set({ previewLoading: true });
@@ -184,8 +187,46 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   subscribeToConversation: (conversationId, userId) => {
     get().unsubscribeActive();
+    getDeviceId()
+      .then((deviceId) => {
+        if (!deviceId) return;
+        const channel = supabase
+          .channel(`encrypted-conversation:${conversationId}:${deviceId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "encrypted_messages",
+              filter: `conversation_id=eq.${conversationId}`
+            },
+            async (payload) => {
+              const raw = payload.new as Record<string, unknown>;
+              if (raw.recipient_device_id !== deviceId) return;
+              const next = await decryptDeviceMessageRecord(raw as EncryptedMessageRow, deviceId);
+              if (next.sender_id !== userId) {
+                showBrowserMessageNotification({
+                  title: "KripChat",
+                  body: next.kind === "text" ? "Nuevo paquete seguro recibido." : "Nuevo adjunto seguro recibido.",
+                  conversationId
+                });
+              }
+              set((state) => ({
+                messagesByConversation: {
+                  ...state.messagesByConversation,
+                  [conversationId]: dedupeMessages([...(state.messagesByConversation[conversationId] ?? []), next])
+                }
+              }));
+            }
+          )
+          .subscribe();
+
+        set((state) => ({ activeChannels: [...state.activeChannels, channel] }));
+      })
+      .catch(() => undefined);
+
     const channel = supabase
-      .channel(`conversation:${conversationId}`)
+      .channel(`legacy-conversation:${conversationId}`)
       .on(
         "postgres_changes",
         {
@@ -213,13 +254,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       )
       .subscribe();
 
-    set({ activeChannel: channel });
+    set((state) => ({ activeChannels: [...state.activeChannels, channel] }));
   },
 
   unsubscribeActive: () => {
-    const channel = get().activeChannel;
-    if (channel) supabase.removeChannel(channel);
-    set({ activeChannel: null });
+    const channels = get().activeChannels;
+    for (const channel of channels) supabase.removeChannel(channel);
+    set({ activeChannels: [] });
   }
 }));
 

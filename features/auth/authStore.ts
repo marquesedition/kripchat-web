@@ -12,6 +12,7 @@ import {
 import type { Profile } from "@/features/chat/types";
 import { ensureE2EEIdentity, promoteProvisionalE2EEIdentity } from "@/lib/e2ee";
 import { supabase } from "@/lib/supabase";
+import { registerCurrentDevice } from "@/src/lib/supabase/devices";
 import { registerForPushNotifications } from "@/services/notifications";
 
 let authSubscriptionBound = false;
@@ -36,8 +37,13 @@ async function loadPreparedProfile(userId: string, email?: string | null) {
 
   const identity = await ensureE2EEIdentity(userId);
   const profile = await loadProfile(userId);
+  try {
+    await registerCurrentDevice(userId, "KripChat device");
+  } catch (error) {
+    console.warn("Unable to register current E2EE device", error);
+  }
   if (!profile) return null;
-  if (profile.e2ee_public_key === identity.publicKey) return profile;
+  if (profile.e2ee_public_key) return profile;
 
   try {
     return (await syncE2EEPublicKey(userId, identity.publicKey)) ?? { ...profile, e2ee_public_key: identity.publicKey };

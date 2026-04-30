@@ -54,14 +54,16 @@ export default function ChatListScreen() {
       }, 250);
     };
 
-    const handleIncomingMessage = (payload: { new: { conversation_id?: string; sender_id?: string; kind?: string } }) => {
+    const handleIncomingMessage = (payload: { new: { conversation_id?: string; sender_id?: string; sender_user_id?: string; kind?: string; message_type?: string } }) => {
       scheduleRefresh();
       const message = payload.new;
-      if (!message.conversation_id || message.sender_id === userId) return;
+      const senderId = message.sender_id ?? message.sender_user_id;
+      const kind = message.kind ?? message.message_type;
+      if (!message.conversation_id || senderId === userId) return;
 
       showBrowserMessageNotification({
         title: "KripChat",
-        body: message.kind === "text" ? "Nuevo paquete seguro recibido." : "Nuevo adjunto seguro recibido.",
+        body: kind === "text" ? "Nuevo paquete seguro recibido." : "Nuevo adjunto seguro recibido.",
         conversationId: message.conversation_id
       });
     };
@@ -69,6 +71,7 @@ export default function ChatListScreen() {
     const channel = supabase
       .channel(`inbox:${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, handleIncomingMessage)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "encrypted_messages" }, handleIncomingMessage)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversation_participants" }, scheduleRefresh)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_requests" }, scheduleRefresh)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_requests" }, scheduleRefresh)
