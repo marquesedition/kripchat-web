@@ -1,7 +1,6 @@
 import type { ComponentProps } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 
@@ -221,27 +220,43 @@ const infoSections: InfoSection[] = [
 ];
 
 export default function HelpScreen() {
+  const { width } = useWindowDimensions();
+  const isWide = width >= 720;
+  const itemWidth = isWide ? "48.5%" : "100%";
+
   return (
     <ScreenShell>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.shell}>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>KRIPCHAT INFO</Text>
-            <Text style={styles.title}>Información</Text>
+            <View style={styles.headerTop}>
+              <Text style={styles.eyebrow}>KRIPCHAT INFO</Text>
+              <View style={styles.statusPill}>
+                <Ionicons name="shield-checkmark-outline" color={colors.green} size={13} />
+                <Text style={styles.statusText}>Privacidad primero</Text>
+              </View>
+            </View>
+            <Text style={styles.title}>Manual de uso</Text>
             <Text style={styles.subtitle}>
-              Guía de funciones, botones, privacidad y comportamiento de la app para usar KripChat desde el teléfono sin tener que adivinar nada.
+              Funciones, botones y límites de seguridad explicados de forma clara para usar KripChat desde el teléfono.
             </Text>
           </View>
 
-          <GlassCard style={styles.quickCard}>
-            <View style={styles.quickIcon}>
-              <Ionicons name="information-circle-outline" color={colors.bg} size={22} />
+          <View style={styles.summaryPanel}>
+            <View style={styles.summaryHeader}>
+              <Ionicons name="information-circle-outline" color={colors.green} size={19} />
+              <Text style={styles.summaryTitle}>Resumen operativo</Text>
             </View>
-            <View style={styles.quickCopy}>
-              <Text style={styles.quickTitle}>Regla principal</Text>
-              <Text style={styles.quickBody}>Si una acción puede borrar datos o cambiar privacidad, KripChat debe pedir confirmación o mostrar un estado claro.</Text>
+            <Text style={styles.summaryBody}>
+              Las acciones normales navegan o sincronizan. Las acciones sensibles, como destruir una conversación o cambiar privacidad, deben mostrar confirmación o estado visible.
+            </Text>
+            <View style={styles.summaryGrid}>
+              <SummaryMetric label="Backend" value="Ciphertext" />
+              <SummaryMetric label="Identidad" value="Username" />
+              <SummaryMetric label="Realtime" value="Activo" />
+              <SummaryMetric label="Docs API" value="/swagger" />
             </View>
-          </GlassCard>
+          </View>
 
           <View style={styles.sectionStack}>
             {infoSections.map((section) => (
@@ -251,17 +266,17 @@ export default function HelpScreen() {
                   <Text style={styles.sectionTitle}>{section.title}</Text>
                   <Text style={styles.sectionSummary}>{section.summary}</Text>
                 </View>
-                <View style={styles.cardStack}>
+                <View style={styles.itemGrid}>
                   {section.items.map((item) => (
-                    <GlassCard key={`${section.title}-${item.title}`} style={styles.card}>
-                      <View style={styles.iconBox}>
+                    <View key={`${section.title}-${item.title}`} style={[styles.infoRow, { width: itemWidth }]}>
+                      <View style={styles.rowIcon}>
                         <Ionicons name={item.icon} color={colors.green} size={19} />
                       </View>
-                      <View style={styles.copy}>
-                        <Text style={styles.cardTitle}>{item.title}</Text>
-                        <Text style={styles.cardBody}>{item.body}</Text>
+                      <View style={styles.rowCopy}>
+                        <Text style={styles.rowTitle}>{item.title}</Text>
+                        <Text style={styles.rowBody}>{item.body}</Text>
                       </View>
-                    </GlassCard>
+                    </View>
                   ))}
                 </View>
               </View>
@@ -270,6 +285,15 @@ export default function HelpScreen() {
         </View>
       </ScrollView>
     </ScreenShell>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metric}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+    </View>
   );
 }
 
@@ -286,70 +310,115 @@ const styles = StyleSheet.create({
     alignSelf: "center"
   },
   header: {
-    marginBottom: spacing.md
+    marginBottom: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    marginBottom: 10
   },
   eyebrow: {
     color: colors.green,
     fontFamily: fonts.mono,
     fontSize: 11,
     fontWeight: "900",
-    marginBottom: 8
+    letterSpacing: 0
+  },
+  statusPill: {
+    minHeight: 28,
+    borderRadius: radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(60,255,107,0.06)"
+  },
+  statusText: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: "800"
   },
   title: {
     color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: "900",
     letterSpacing: 0
   },
   subtitle: {
     color: colors.muted,
-    fontFamily: fonts.mono,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 21,
     marginTop: 8
   },
-  quickCard: {
-    minHeight: 94,
+  summaryPanel: {
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: "rgba(20, 23, 28, 0.86)",
     padding: spacing.md,
+    marginBottom: spacing.lg,
+    gap: 12
+  },
+  summaryHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: spacing.lg,
-    borderColor: colors.borderStrong
+    gap: 8
   },
-  quickIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.green
-  },
-  quickCopy: {
-    flex: 1,
-    minWidth: 0
-  },
-  quickTitle: {
+  summaryTitle: {
     color: colors.text,
-    fontFamily: fonts.mono,
     fontSize: 15,
     fontWeight: "900"
   },
-  quickBody: {
+  summaryBody: {
     color: colors.muted,
     fontSize: 13,
-    lineHeight: 19,
-    marginTop: 5
+    lineHeight: 20
+  },
+  summaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  metric: {
+    minWidth: "47%",
+    flexGrow: 1,
+    borderRadius: radii.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    backgroundColor: "rgba(255,255,255,0.025)"
+  },
+  metricLabel: {
+    color: colors.faint,
+    fontFamily: fonts.mono,
+    fontSize: 9,
+    fontWeight: "900"
+  },
+  metricValue: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 4
   },
   sectionStack: {
-    gap: spacing.lg
+    gap: 26
   },
   section: {
-    gap: 10
+    gap: 12
   },
   sectionHeader: {
-    gap: 6
+    gap: 5,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border
   },
   sectionEyebrow: {
     color: colors.green,
@@ -359,8 +428,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "900",
     letterSpacing: 0
   },
@@ -369,41 +437,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19
   },
-  cardStack: {
-    gap: 9
-  },
-  card: {
-    minHeight: 88,
-    padding: spacing.md,
+  itemGrid: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 10
   },
-  iconBox: {
-    width: 40,
-    height: 40,
+  infoRow: {
+    minHeight: 78,
     borderRadius: radii.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderStrong,
+    borderColor: colors.border,
+    backgroundColor: "rgba(255,255,255,0.018)",
+    padding: 12,
+    flexDirection: "row",
+    gap: 11
+  },
+  rowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(60,255,107,0.24)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(60,255,107,0.08)"
+    backgroundColor: "rgba(60,255,107,0.055)"
   },
-  copy: {
+  rowCopy: {
     flex: 1,
     minWidth: 0
   },
-  cardTitle: {
+  rowTitle: {
     color: colors.text,
-    fontFamily: fonts.mono,
     fontSize: 14,
-    fontWeight: "900",
-    letterSpacing: 0
+    fontWeight: "900"
   },
-  cardBody: {
+  rowBody: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    marginTop: 5
+    marginTop: 4
   }
 });
