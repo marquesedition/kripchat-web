@@ -5,6 +5,7 @@ import {
   getKripChatCryptoStack,
   getShieldPaddingBucket,
   KRIPCHAT_SHIELD_PROTOCOL,
+  resetShieldCryptoProviderForTests,
   setKripChatRuntimeOverrideForTests
 } from "@/src/lib/shield";
 
@@ -17,11 +18,13 @@ describe("KripChat Shield foundation", () => {
     delete process.env.EXPO_PUBLIC_KRIPCHAT_APP_MODE;
     delete process.env.EXPO_PUBLIC_KRIPCHAT_CRYPTO_STACK;
     setKripChatRuntimeOverrideForTests(null);
+    resetShieldCryptoProviderForTests();
   });
 
   afterAll(() => {
     process.env = originalEnv;
     setKripChatRuntimeOverrideForTests(null);
+    resetShieldCryptoProviderForTests();
   });
 
   it("keeps the classic app and legacy crypto stack as the default runtime", () => {

@@ -82,8 +82,13 @@ Shield v1 should use:
 The current foundation lives in:
 
 - `src/lib/shield/config.ts`
+- `src/lib/shield/ShieldCryptoProvider.ts`
+- `src/lib/shield/providerRegistry.ts`
 - `src/lib/shield/protocol.ts`
+- `src/lib/shield/sessionStore.ts`
 - `src/lib/shield/types.ts`
+
+Shield is provider-driven. The app can select the `kripchat-shield-v1` stack, but message sending must fail closed until a production-ready provider is registered with `registerShieldCryptoProvider`.
 
 ## Data Model Direction
 
@@ -106,6 +111,8 @@ Before full Shield activation, add or extend schema for:
 - recovery and revocation events
 
 Do not enforce Shield only in the UI. Real enforcement needs database columns, RLS checks, and client guards.
+
+The first Shield schema preparation is in `supabase/migrations/20260504093208_shield_provider_contract.sql`.
 
 ## Rollout Plan
 
