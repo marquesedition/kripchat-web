@@ -2,6 +2,8 @@
 
 KripChat is designed so Supabase transports and stores ciphertext, not message plaintext.
 
+For the full code-level explanation, read [`docs/security-model.md`](docs/security-model.md).
+
 ## What KripChat Protects
 
 - Message bodies are encrypted on the client before being inserted.
@@ -17,7 +19,8 @@ KripChat is designed so Supabase transports and stores ciphertext, not message p
 - `localCryptoProvider` is a development placeholder using TweetNaCl boxes.
 - It is not a complete Signal Protocol implementation.
 - It does not yet provide full X3DH, Double Ratchet, post-compromise security, deniability, or production-grade multi-device session management.
-- Existing UI screens still use the legacy chat store while the new per-device Supabase layer is staged under `src/lib`.
+- Web key storage uses AsyncStorage and is weaker than native `expo-secure-store`.
+- Legacy `messages` support still exists for compatibility and should be retired or migrated before stronger production claims.
 - Push notification bodies must remain generic and must not contain plaintext previews.
 
 ## Visible Metadata
@@ -53,5 +56,6 @@ Before production security claims:
 4. Add encrypted group sender keys or equivalent audited group protocol.
 5. Make attachment metadata less revealing where possible.
 6. Run independent security review of RLS policies, storage policies, and client crypto boundaries.
+7. Remove or migrate legacy `messages` storage.
 
 Do not market the current placeholder crypto as production-ready end-to-end encryption.

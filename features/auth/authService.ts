@@ -41,6 +41,8 @@ export function getAuthEmailForUsername(username: string) {
   return `${cleanUsername}@${INTERNAL_AUTH_EMAIL_DOMAIN}`;
 }
 
+// Supabase password auth is email/password internally. Product UX is handle/password,
+// so every handle maps to a deterministic private auth email that users never see.
 export async function signInWithHandle(username: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email: getAuthEmailForUsername(username), password });
   if (error) throw normalizeSupabaseAuthError(error);

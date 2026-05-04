@@ -85,6 +85,8 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!conversationId || !userId) return undefined;
 
+    // If a peer destroys the conversation while this screen is open, leave the
+    // now-invalid route immediately instead of rendering an empty chat shell.
     const channel = supabase
       .channel(`conversation-deleted-navigation:${conversationId}`)
       .on(
