@@ -30,13 +30,13 @@ export default function LoginScreen() {
     const confirmError = Array.isArray(params.confirm_error) ? params.confirm_error[0] : params.confirm_error;
 
     if (confirmed === "1") {
-      Alert.alert("Email confirmado", "Tu email fue confirmado. Ya puedes iniciar sesión.");
+      Alert.alert("Cuenta activada", "Tu cuenta fue activada. Ya puedes iniciar sesión con tu hacker_handle.");
       router.replace("/(auth)/login");
       return;
     }
 
     if (confirmError) {
-      Alert.alert("Error al confirmar email", confirmError);
+      Alert.alert("Error al activar cuenta", confirmError);
       router.replace("/(auth)/login");
     }
   }, [params.confirm_error, params.confirmed]);
@@ -58,7 +58,7 @@ export default function LoginScreen() {
       if (isEmailNotConfirmedError(error)) {
         showLoginError(
           "Account pending",
-          "Supabase está pidiendo confirmar email. Desactiva la confirmación por email en Supabase Auth para usar solo hacker_handle."
+          "Supabase todavía exige verificación de cuenta. Desactiva la verificación de registro en Supabase Auth para usar solo hacker_handle."
         );
         return;
       }

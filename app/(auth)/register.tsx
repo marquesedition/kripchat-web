@@ -34,7 +34,7 @@ export default function RegisterScreen() {
       }
       Alert.alert(
         "Registro pendiente",
-        "La cuenta se creó, pero Supabase no devolvió una sesión. Desactiva la confirmación por email en Supabase Auth para usar registro solo con hacker_handle."
+        "La cuenta se creó, pero Supabase no devolvió una sesión. Desactiva la verificación de registro en Supabase Auth para usar solo hacker_handle."
       );
       router.replace("/(auth)/login");
     } catch (error) {

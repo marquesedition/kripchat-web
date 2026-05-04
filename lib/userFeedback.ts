@@ -12,13 +12,13 @@ type ErrorShape = {
 
 const SUPABASE_CODE_MESSAGES: Record<string, string> = {
   anonymous_provider_disabled: "El acceso anónimo está desactivado en Supabase.",
-  email_address_invalid: "El email no es válido para registro. Usa una dirección real.",
-  email_address_not_authorized: "Ese email no está autorizado con el proveedor SMTP actual.",
-  email_exists: "Ese email ya está registrado.",
-  email_not_confirmed: "Debes confirmar tu email para continuar. Revisa tu bandeja de entrada y vuelve a intentarlo.",
-  email_provider_disabled: "El registro por email está desactivado en Supabase.",
+  email_address_invalid: "No se pudo crear la cuenta con ese hacker_handle.",
+  email_address_not_authorized: "Ese hacker_handle no está autorizado con la configuración actual.",
+  email_exists: "Ese hacker_handle ya está registrado.",
+  email_not_confirmed: "Tu cuenta está pendiente de activación. Revisa la configuración de Supabase Auth.",
+  email_provider_disabled: "El registro con password está desactivado en Supabase.",
   invalid_credentials: "Usuario no existe o credenciales incorrectas. Revisa hacker_handle y contraseña.",
-  over_email_send_rate_limit: "Has alcanzado el límite de envío de emails. Espera unos minutos antes de volver a registrarte.",
+  over_email_send_rate_limit: "Has alcanzado el límite de intentos de registro. Espera unos minutos antes de volver a intentarlo.",
   over_request_rate_limit: "Demasiadas solicitudes desde este dispositivo o red. Espera unos minutos e inténtalo de nuevo.",
   request_timeout: "La solicitud tardó demasiado. Inténtalo de nuevo.",
   refresh_token_already_used: "Tu sesión ya no es válida. Inicia sesión de nuevo.",
@@ -136,7 +136,7 @@ export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo
   }
 
   if (normalized.includes("email rate limit exceeded")) {
-    return "Has alcanzado el límite de envío de emails. Espera unos minutos antes de volver a registrarte.";
+    return "Has alcanzado el límite de intentos de registro. Espera unos minutos antes de volver a intentarlo.";
   }
 
   if (normalized.includes("email not confirmed")) {

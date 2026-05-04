@@ -1,15 +1,15 @@
 import { getApiErrorMessage, getUserFacingErrorMessage } from "@/lib/userFeedback";
 
 describe("user feedback error mapping", () => {
-  it("returns email confirmation guidance", () => {
+  it("returns account activation guidance", () => {
     expect(getUserFacingErrorMessage({ code: "email_not_confirmed" })).toBe(
-      "Debes confirmar tu email para continuar. Revisa tu bandeja de entrada y vuelve a intentarlo."
+      "Tu cuenta está pendiente de activación. Revisa la configuración de Supabase Auth."
     );
   });
 
-  it("maps email send rate limit errors", () => {
+  it("maps registration rate limit errors", () => {
     expect(getUserFacingErrorMessage({ code: "over_email_send_rate_limit", message: "email rate limit exceeded" })).toBe(
-      "Has alcanzado el límite de envío de emails. Espera unos minutos antes de volver a registrarte."
+      "Has alcanzado el límite de intentos de registro. Espera unos minutos antes de volver a intentarlo."
     );
   });
 
@@ -55,7 +55,7 @@ describe("user feedback error mapping", () => {
 
   it("maps common Supabase auth codes", () => {
     expect(getUserFacingErrorMessage({ code: "email_exists", message: "Email address already exists in the system." })).toContain(
-      "Ese email ya está registrado."
+      "Ese hacker_handle ya está registrado."
     );
     expect(getUserFacingErrorMessage({ code: "signup_disabled", message: "Sign ups are disabled on the server." })).toContain(
       "El registro de nuevas cuentas está desactivado temporalmente."

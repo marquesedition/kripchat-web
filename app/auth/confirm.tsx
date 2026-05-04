@@ -9,7 +9,7 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export default function ConfirmEmailScreen() {
+export default function ConfirmAccountScreen() {
   const params = useLocalSearchParams<{
     code?: string;
     token_hash?: string;
@@ -30,7 +30,7 @@ export default function ConfirmEmailScreen() {
 
       try {
         if (error || errorDescription) {
-          throw new Error(errorDescription || error || "No se pudo confirmar el email.");
+          throw new Error(errorDescription || error || "No se pudo activar la cuenta.");
         }
 
         if (code) {
@@ -51,7 +51,7 @@ export default function ConfirmEmailScreen() {
           });
         }
       } catch (caughtError) {
-        const message = caughtError instanceof Error ? caughtError.message : "No se pudo confirmar el email.";
+        const message = caughtError instanceof Error ? caughtError.message : "No se pudo activar la cuenta.";
         if (!canceled) {
           router.replace({
             pathname: "/(auth)/login",
@@ -72,8 +72,8 @@ export default function ConfirmEmailScreen() {
     <ScreenShell>
       <View style={styles.container}>
         <ActivityIndicator color={colors.green} />
-        <Text style={styles.title}>Confirmando email...</Text>
-        <Text style={styles.subtitle}>Estamos validando tu enlace y te llevamos al login.</Text>
+        <Text style={styles.title}>Activando cuenta...</Text>
+        <Text style={styles.subtitle}>Estamos validando tu sesión y te llevamos al login.</Text>
       </View>
     </ScreenShell>
   );

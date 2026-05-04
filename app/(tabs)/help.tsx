@@ -161,7 +161,7 @@ const infoSections: InfoSection[] = [
       {
         icon: "person-circle-outline",
         title: "Callsign",
-        body: "Es tu username público. Sirve para que otros usuarios te encuentren sin exponer email ni teléfono."
+        body: "Es tu username público. Sirve para que otros usuarios te encuentren sin exponer datos privados."
       },
       {
         icon: "image-outline",
