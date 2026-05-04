@@ -207,6 +207,13 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+
+        <View style={styles.footerNotice}>
+          <Text style={styles.footerNoticeTitle}>APP EN DESARROLLO ACTIVO</Text>
+          <Text style={styles.footerNoticeBody}>
+            KripChat esta evolucionando hacia una plataforma privada de comunicacion segura. Algunas funciones, tarifas y protocolos pueden cambiar antes de la version final de produccion.
+          </Text>
+        </View>
       </ScrollView>
     </ScreenShell>
   );
@@ -674,5 +681,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     flex: 1
+  },
+  footerNotice: {
+    width: "100%",
+    maxWidth: 1180,
+    alignSelf: "center",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    gap: 8
+  },
+  footerNoticeTitle: {
+    color: colors.green,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    fontWeight: "900"
+  },
+  footerNoticeBody: {
+    color: colors.faint,
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    lineHeight: 17,
+    maxWidth: 820
   }
 });
