@@ -544,7 +544,6 @@ export async function requestDirectConversation(username: string): Promise<Direc
   const { data: authData } = await supabase.auth.getSession();
   const sessionUser = authData.session?.user;
   if (!sessionUser?.id) throw new Error("Sign in before opening a channel.");
-  if (!sessionUser.email_confirmed_at) throw new Error("Confirm your email before opening a channel.");
 
   const normalizedUsername = username.trim().toLowerCase();
   if (!normalizedUsername) throw new Error("Enter a valid username.");
@@ -555,7 +554,7 @@ export async function requestDirectConversation(username: string): Promise<Direc
   if (error) {
     const rawMessage = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
     if (error.code === "42501" || rawMessage.includes("row-level security") || rawMessage.includes("permission denied")) {
-      throw new Error("Supabase blocked profile lookup. Sign in with a confirmed account and try again.");
+      throw new Error("Supabase blocked profile lookup. Sign in with an active account and try again.");
     }
     if (rawMessage.includes("peer not found")) {
       throw error;

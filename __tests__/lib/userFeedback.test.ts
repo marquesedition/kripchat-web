@@ -15,10 +15,10 @@ describe("user feedback error mapping", () => {
 
   it("maps invalid login credentials", () => {
     expect(getUserFacingErrorMessage({ code: "invalid_credentials", message: "Invalid login credentials" })).toBe(
-      "Usuario no existe o credenciales incorrectas. Revisa email y contraseña."
+      "Usuario no existe o credenciales incorrectas. Revisa hacker_handle y contraseña."
     );
     expect(getUserFacingErrorMessage(new Error("Invalid login credentials"))).toBe(
-      "Usuario no existe o credenciales incorrectas. Revisa email y contraseña."
+      "Usuario no existe o credenciales incorrectas. Revisa hacker_handle y contraseña."
     );
   });
 
@@ -32,7 +32,7 @@ describe("user feedback error mapping", () => {
           }
         }
       })
-    ).toBe("Usuario no existe o credenciales incorrectas. Revisa email y contraseña.");
+    ).toBe("Usuario no existe o credenciales incorrectas. Revisa hacker_handle y contraseña.");
   });
 
   it("shows API message detail for non-sensitive user-facing errors", () => {

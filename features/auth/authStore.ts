@@ -2,9 +2,9 @@ import type { Session } from "@supabase/supabase-js";
 import { create } from "zustand";
 import {
   fetchProfile,
-  signInWithEmail,
+  signInWithHandle,
   signOut as signOutService,
-  signUpWithEmail,
+  signUpWithHandle,
   syncE2EEPublicKey,
   updateProfile,
   type SignUpResult
@@ -76,8 +76,8 @@ type AuthState = {
   loading: boolean;
   initialized: boolean;
   bootstrap: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, username: string) => Promise<SignUpResult>;
+  signIn: (username: string, password: string) => Promise<void>;
+  signUp: (username: string, password: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   saveProfile: (patch: Pick<Profile, "username" | "avatar_url" | "push_token">) => Promise<void>;
@@ -119,10 +119,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  signIn: async (email, password) => {
+  signIn: async (username, password) => {
     set({ loading: true });
     try {
-      const session = await signInWithEmail(email, password);
+      const session = await signInWithHandle(username, password);
       const profile = session?.user.id ? await syncPushToken(session.user.id, await loadPreparedProfile(session.user.id, session.user.email)) : null;
       set({ session, profile });
     } finally {
@@ -130,10 +130,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async (email, password, username) => {
+  signUp: async (username, password) => {
     set({ loading: true });
     try {
-      const result = await signUpWithEmail(email, password, username);
+      const result = await signUpWithHandle(username, password);
       const profile = result.session?.user.id
         ? await syncPushToken(result.session.user.id, await loadPreparedProfile(result.session.user.id, result.session.user.email))
         : null;

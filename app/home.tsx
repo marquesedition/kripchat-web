@@ -25,7 +25,7 @@ const featureRows = [
   }
 ] as const;
 
-const signalRows = ["Auth por email", "Perfiles con username", "Adjuntos cifrables", "Push notifications"];
+const signalRows = ["Auth por hacker_handle", "Perfiles con username", "Adjuntos cifrables", "Push notifications"];
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();

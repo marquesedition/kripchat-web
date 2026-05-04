@@ -4,10 +4,11 @@ import { ensureProvisionalE2EEIdentity } from "@/lib/e2ee";
 import { normalizeUsername } from "@/lib/validation";
 import type { Profile } from "@/features/chat/types";
 
+const INTERNAL_AUTH_EMAIL_DOMAIN = "kripchat.invalid";
+
 export type SignUpResult = {
   session: Session | null;
-  emailConfirmationRequired: boolean;
-  email: string;
+  username: string;
 };
 
 export class SupabaseAuthApiError extends Error {
@@ -35,23 +36,25 @@ export function resolveEmailConfirmRedirectUrl(origin?: string) {
   return "https://kripchat.com/auth/confirm";
 }
 
-export async function signInWithEmail(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+export function getAuthEmailForUsername(username: string) {
+  const cleanUsername = normalizeUsername(username);
+  return `${cleanUsername}@${INTERNAL_AUTH_EMAIL_DOMAIN}`;
+}
+
+export async function signInWithHandle(username: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email: getAuthEmailForUsername(username), password });
   if (error) throw normalizeSupabaseAuthError(error);
   return data.session;
 }
 
-export async function signUpWithEmail(email: string, password: string, username: string) {
+export async function signUpWithHandle(username: string, password: string) {
   const cleanUsername = normalizeUsername(username);
-  const cleanEmail = email.trim().toLowerCase();
+  const cleanEmail = getAuthEmailForUsername(cleanUsername);
   const provisionalIdentity = await ensureProvisionalE2EEIdentity(cleanEmail);
-  const webOrigin = typeof window !== "undefined" && window.location ? window.location.origin : undefined;
-  const emailRedirectTo = resolveEmailConfirmRedirectUrl(webOrigin);
   const { data, error } = await supabase.auth.signUp({
     email: cleanEmail,
     password,
     options: {
-      emailRedirectTo,
       data: {
         username: cleanUsername,
         e2ee_public_key: provisionalIdentity.publicKey
@@ -61,9 +64,14 @@ export async function signUpWithEmail(email: string, password: string, username:
   if (error) throw error;
   return {
     session: data.session,
-    emailConfirmationRequired: Boolean(data.user && !data.session),
-    email: data.user?.email ?? cleanEmail
+    username: cleanUsername
   } satisfies SignUpResult;
+}
+
+export const signInWithEmail = signInWithHandle;
+
+export async function signUpWithEmail(emailOrUsername: string, password: string, username?: string) {
+  return signUpWithHandle(username ?? emailOrUsername, password);
 }
 
 export async function signOut() {

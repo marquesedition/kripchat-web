@@ -9,10 +9,9 @@ import { useAuthStore } from "@/features/auth/authStore";
 import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { isValidEmail, isValidPassword, isValidUsername, normalizeUsername } from "@/lib/validation";
+import { isValidPassword, isValidUsername, normalizeUsername } from "@/lib/validation";
 
 export default function RegisterScreen() {
-  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const loading = useAuthStore((state) => state.loading);
@@ -23,15 +22,19 @@ export default function RegisterScreen() {
       Alert.alert("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment.");
       return;
     }
-    if (!isValidEmail(email) || !isValidUsername(username) || !isValidPassword(password)) {
-      Alert.alert("Check fields", "Use a valid email, a 3-24 char hacker handle, and an 8+ char password.");
+    if (!isValidUsername(username) || !isValidPassword(password)) {
+      Alert.alert("Check fields", "Use a 3-24 char hacker handle and an 8+ char password.");
       return;
     }
     try {
-      const result = await signUp(email, password, normalizeUsername(username));
+      const result = await signUp(normalizeUsername(username), password);
+      if (result.session) {
+        router.replace("/(tabs)");
+        return;
+      }
       Alert.alert(
-        "Confirmación de email requerida",
-        `Registro completado. Revisa el correo de Supabase en ${result.email} y confirma tu email antes de iniciar sesión.`
+        "Registro pendiente",
+        "La cuenta se creó, pero Supabase no devolvió una sesión. Desactiva la confirmación por email en Supabase Auth para usar registro solo con hacker_handle."
       );
       router.replace("/(auth)/login");
     } catch (error) {
@@ -55,16 +58,7 @@ export default function RegisterScreen() {
               <View style={styles.inputStack}>
                 <TextInput
                   autoCapitalize="none"
-                  autoComplete="email"
-                  keyboardType="email-address"
-                  placeholder="operator@email.com"
-                  placeholderTextColor={colors.faint}
-                  value={email}
-                  onChangeText={setEmail}
-                  style={styles.input}
-                />
-                <TextInput
-                  autoCapitalize="none"
+                  autoComplete="username"
                   placeholder="hacker_handle"
                   placeholderTextColor={colors.faint}
                   value={username}
@@ -84,7 +78,7 @@ export default function RegisterScreen() {
               </View>
               <View style={styles.actionStack}>
                 <GlassButton label={loading ? "Provisioning..." : "Register"} disabled={loading} onPress={onSubmit} style={styles.primaryButton} />
-                <Text style={styles.notice}>Después del registro debes confirmar el email enviado por Supabase.</Text>
+                <Text style={styles.notice}>Usa solo tu hacker_handle y password para entrar.</Text>
                 <Link href="/(auth)/login" asChild>
                   <Pressable style={styles.linkButton}>
                     <Text style={styles.linkText}>Already cleared? Log in</Text>

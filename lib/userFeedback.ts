@@ -17,7 +17,7 @@ const SUPABASE_CODE_MESSAGES: Record<string, string> = {
   email_exists: "Ese email ya está registrado.",
   email_not_confirmed: "Debes confirmar tu email para continuar. Revisa tu bandeja de entrada y vuelve a intentarlo.",
   email_provider_disabled: "El registro por email está desactivado en Supabase.",
-  invalid_credentials: "Usuario no existe o credenciales incorrectas. Revisa email y contraseña.",
+  invalid_credentials: "Usuario no existe o credenciales incorrectas. Revisa hacker_handle y contraseña.",
   over_email_send_rate_limit: "Has alcanzado el límite de envío de emails. Espera unos minutos antes de volver a registrarte.",
   over_request_rate_limit: "Demasiadas solicitudes desde este dispositivo o red. Espera unos minutos e inténtalo de nuevo.",
   request_timeout: "La solicitud tardó demasiado. Inténtalo de nuevo.",
@@ -144,7 +144,7 @@ export function getUserFacingErrorMessage(error: unknown, fallback = "No se pudo
   }
 
   if (normalized.includes("invalid login credentials")) {
-    return "Usuario no existe o credenciales incorrectas. Revisa email y contraseña.";
+    return "Usuario no existe o credenciales incorrectas. Revisa hacker_handle y contraseña.";
   }
 
   if (isSessionIssue(text, code) || status === "401") {

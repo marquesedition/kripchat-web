@@ -10,10 +10,10 @@ import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { useAuthStore } from "@/features/auth/authStore";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { isValidEmail } from "@/lib/validation";
+import { isValidUsername, normalizeUsername } from "@/lib/validation";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<{ title: string; message: string } | null>(null);
   const params = useLocalSearchParams<{ confirmed?: string; confirm_error?: string }>();
@@ -47,16 +47,19 @@ export default function LoginScreen() {
       showLoginError("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment.");
       return;
     }
-    if (!isValidEmail(email) || !password) {
-      showLoginError("Invalid login", "Enter a valid email and password.");
+    if (!isValidUsername(username) || !password) {
+      showLoginError("Invalid login", "Enter a valid hacker_handle and password.");
       return;
     }
     try {
-      await signIn(email, password);
+      await signIn(normalizeUsername(username), password);
       router.replace("/(tabs)");
     } catch (error) {
       if (isEmailNotConfirmedError(error)) {
-        showLoginError("Email confirmation required", "Confirma tu email desde el mensaje de Supabase y luego inicia sesión.");
+        showLoginError(
+          "Account pending",
+          "Supabase está pidiendo confirmar email. Desactiva la confirmación por email en Supabase Auth para usar solo hacker_handle."
+        );
         return;
       }
       showLoginError("Error de autenticación", getUserFacingErrorMessage(error, "No se pudo iniciar sesión."));
@@ -81,13 +84,12 @@ export default function LoginScreen() {
               <View style={styles.inputStack}>
                 <TextInput
                   autoCapitalize="none"
-                  autoComplete="email"
-                  keyboardType="email-address"
-                  placeholder="operator@email.com"
+                  autoComplete="username"
+                  placeholder="hacker_handle"
                   placeholderTextColor={colors.faint}
-                  value={email}
+                  value={username}
                   onChangeText={(value) => {
-                    setEmail(value);
+                    setUsername(normalizeUsername(value));
                     if (authError) setAuthError(null);
                   }}
                   style={styles.input}

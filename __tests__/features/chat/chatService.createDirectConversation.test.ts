@@ -40,17 +40,9 @@ describe("requestDirectConversation guards and error translation", () => {
     expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it("requires a confirmed email", async () => {
-    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: "user-1", email_confirmed_at: null } } }
-    });
-
-    await expect(requestDirectConversation("peer")).rejects.toThrow("Confirm your email before opening a channel.");
-  });
-
   it("rejects empty usernames before querying Supabase", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
+      data: { session: { user: { id: "user-1" } } }
     });
 
     await expect(requestDirectConversation("   ")).rejects.toThrow("Enter a valid username.");
@@ -59,7 +51,7 @@ describe("requestDirectConversation guards and error translation", () => {
 
   it("maps RLS/permission lookup failures to a user-facing message", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
+      data: { session: { user: { id: "user-1" } } }
     });
     (supabase.rpc as jest.Mock).mockResolvedValue({
       data: null,
@@ -71,13 +63,13 @@ describe("requestDirectConversation guards and error translation", () => {
     });
 
     await expect(requestDirectConversation("Peer_Name")).rejects.toThrow(
-      "Supabase blocked profile lookup. Sign in with a confirmed account and try again."
+      "Supabase blocked profile lookup. Sign in with an active account and try again."
     );
   });
 
   it("preserves peer-not-found rpc errors so the API message can be shown", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
+      data: { session: { user: { id: "user-1" } } }
     });
     (supabase.rpc as jest.Mock).mockResolvedValue({
       data: null,
@@ -96,7 +88,7 @@ describe("requestDirectConversation guards and error translation", () => {
 
   it("returns an accepted conversation when lookup and rpc succeed", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
+      data: { session: { user: { id: "user-1" } } }
     });
     (supabase.rpc as jest.Mock).mockResolvedValue({
       data: [
@@ -121,7 +113,7 @@ describe("requestDirectConversation guards and error translation", () => {
 
   it("returns a pending request when the peer has not accepted yet", async () => {
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: { user: { id: "user-1", email_confirmed_at: "2026-04-27T18:30:00Z" } } }
+      data: { session: { user: { id: "user-1" } } }
     });
     (supabase.rpc as jest.Mock).mockResolvedValue({
       data: [
