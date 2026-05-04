@@ -11,7 +11,7 @@ const featureRows = [
   {
     icon: "lock-closed-outline",
     title: "Canales privados",
-    body: "Conversaciones 1:1 con sesiones persistentes, reglas RLS y frontera preparada para cifrado E2EE."
+    body: "Conversaciones 1:1 cifradas para coordinar sin exponer identidad, telefono ni email."
   },
   {
     icon: "radio-outline",
@@ -21,11 +21,69 @@ const featureRows = [
   {
     icon: "shield-checkmark-outline",
     title: "Operativa segura",
-    body: "Validacion de entradas, anti-spam y perfiles con clave publica para evolucionar hacia cifrado cliente a cliente."
+    body: "Handles publicos, anti-spam, control de dispositivos y base preparada para equipos que viven en canales sensibles."
   }
 ] as const;
 
 const signalRows = ["Auth por hacker_handle", "Perfiles con username", "Adjuntos cifrables", "Push notifications"];
+
+const pricingRows = [
+  {
+    icon: "person-outline",
+    plan: "Access",
+    audience: "Free",
+    price: "$0",
+    cadence: "para probar",
+    description: "La puerta de entrada para sentir KripChat sin compromiso.",
+    bullets: ["Chats 1:1 cifrados", "3 conversaciones activas", "Historial basico", "1 dispositivo seguro"],
+    cta: "Crear cuenta gratis",
+    featured: false,
+    note: ""
+  },
+  {
+    icon: "eye-off-outline",
+    plan: "Ghost",
+    audience: "Pro",
+    price: "$8",
+    cadence: "por mes",
+    description: "Control personal completo para freelancers, hackers eticos y operadores serios.",
+    bullets: ["Conversaciones ilimitadas", "Multi-device seguro", "Adjuntos cifrados grandes", "Busqueda, backup y autodestruccion"],
+    cta: "Activar Ghost",
+    featured: true,
+    note: "$72 al ano"
+  },
+  {
+    icon: "people-outline",
+    plan: "Squad",
+    audience: "Team",
+    price: "$49",
+    cadence: "por mes",
+    description: "Espacios privados para squads, agencias y comunidades cerradas.",
+    bullets: ["Hasta 5 miembros", "Roles owner/admin/member", "Invitaciones controladas", "Bloqueo remoto de dispositivos"],
+    cta: "Crear Squad",
+    featured: false,
+    note: ""
+  },
+  {
+    icon: "business-outline",
+    plan: "Ops",
+    audience: "Enterprise",
+    price: "$499+",
+    cadence: "por mes",
+    description: "Infraestructura dedicada para organizaciones con compliance y riesgo real.",
+    bullets: ["SSO/SAML", "Namespace privado", "Deploy dedicado", "SLA, API y soporte prioritario"],
+    cta: "Hablar de Ops",
+    featured: false,
+    note: ""
+  }
+] as const;
+
+const operatorRows = [
+  "Free demuestra confianza.",
+  "Ghost monetiza al individuo.",
+  "Squad monetiza coordinacion.",
+  "Ops monetiza reduccion de riesgo."
+] as const;
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
@@ -62,10 +120,10 @@ export default function HomeScreen() {
 
         <View style={[styles.hero, isWide && styles.heroWide]}>
           <View style={[styles.heroCopy, isWide && styles.heroCopyWide]}>
-            <Text style={styles.kicker}>SECURE TEAM MESSAGING</Text>
+            <Text style={styles.kicker}>PRIVATE CHANNELS FOR SERIOUS OPERATORS</Text>
             <Text style={styles.title}>KripChat</Text>
             <Text style={styles.subtitle}>
-              Chat privado en tiempo real para equipos tecnicos, hackers eticos y operaciones que necesitan comunicarse sin perder control.
+              Infraestructura privada de comunicacion para equipos tecnicos, hackers eticos y operaciones que necesitan coordinar sin perder control.
             </Text>
             <View style={styles.heroActions}>
               <GlassButton label={session ? "Entrar a chats" : "Crear cuenta segura"} onPress={goToPrimaryRoute} style={styles.primaryCta} />
@@ -77,16 +135,16 @@ export default function HomeScreen() {
             </View>
             <View style={styles.statusStrip}>
               <View style={styles.statusItem}>
-                <Text style={styles.statusValue}>E2EE</Text>
-                <Text style={styles.statusLabel}>ready boundary</Text>
+                <Text style={styles.statusValue}>Ghost</Text>
+                <Text style={styles.statusLabel}>pro mode</Text>
               </View>
               <View style={styles.statusItem}>
-                <Text style={styles.statusValue}>1:1</Text>
-                <Text style={styles.statusLabel}>direct channels</Text>
+                <Text style={styles.statusValue}>Squad</Text>
+                <Text style={styles.statusLabel}>team spaces</Text>
               </View>
               <View style={styles.statusItem}>
-                <Text style={styles.statusValue}>RLS</Text>
-                <Text style={styles.statusLabel}>data policies</Text>
+                <Text style={styles.statusValue}>Ops</Text>
+                <Text style={styles.statusLabel}>dedicated infra</Text>
               </View>
             </View>
           </View>
@@ -132,6 +190,71 @@ export default function HomeScreen() {
                 <Text style={styles.featureBody}>{feature.body}</Text>
               </GlassCard>
             ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionKicker}>MEMBRESIAS</Text>
+          <Text style={styles.sectionTitle}>Tarifas pensadas para crecer desde un operador hasta una unidad completa</Text>
+          <View style={[styles.pricingGrid, isWide && styles.pricingGridWide]}>
+            {pricingRows.map((tier) => (
+              <GlassCard key={tier.plan} style={[styles.pricingCard, tier.featured && styles.featuredPricingCard]}>
+                {tier.featured ? (
+                  <View style={styles.recommendedBadge}>
+                    <Text style={styles.recommendedText}>RECOMENDADO</Text>
+                  </View>
+                ) : null}
+                <View style={styles.planHeader}>
+                  <View style={[styles.planIcon, tier.featured && styles.featuredPlanIcon]}>
+                    <Ionicons name={tier.icon} size={20} color={tier.featured ? colors.bg : colors.green} />
+                  </View>
+                  <View style={styles.planTitleBlock}>
+                    <Text style={styles.planAudience}>{tier.audience}</Text>
+                    <Text style={styles.planName}>{tier.plan}</Text>
+                  </View>
+                </View>
+                <View style={styles.priceRow}>
+                  <Text style={styles.price}>{tier.price}</Text>
+                  <Text style={styles.cadence}>{tier.cadence}</Text>
+                </View>
+                {tier.note ? <Text style={styles.planNote}>{tier.note}</Text> : null}
+                <Text style={styles.planDescription}>{tier.description}</Text>
+                <View style={styles.bulletStack}>
+                  {tier.bullets.map((bullet) => (
+                    <View key={bullet} style={styles.planBullet}>
+                      <Ionicons name="checkmark-circle" size={15} color={tier.featured ? colors.green : colors.blue} />
+                      <Text style={styles.planBulletText}>{bullet}</Text>
+                    </View>
+                  ))}
+                </View>
+                <GlassButton
+                  label={tier.cta}
+                  variant={tier.featured ? "primary" : "secondary"}
+                  onPress={goToPrimaryRoute}
+                  style={styles.planCta}
+                />
+              </GlassCard>
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.section, styles.opsSection]}>
+          <View style={[styles.operatorBand, isWide && styles.operatorBandWide]}>
+            <View style={styles.operatorCopy}>
+              <Text style={styles.sectionKicker}>VISION COMERCIAL</Text>
+              <Text style={styles.operatorTitle}>No vendemos otro chat. Vendemos confianza operacional.</Text>
+              <Text style={styles.operatorBody}>
+                KripChat debe ser el lugar donde una identidad por hacker_handle, un dispositivo autorizado y un canal privado valen mas que una bandeja de entrada llena de ruido.
+              </Text>
+            </View>
+            <View style={styles.operatorList}>
+              {operatorRows.map((row) => (
+                <View key={row} style={styles.operatorRow}>
+                  <Ionicons name="flash-outline" size={16} color={colors.green} />
+                  <Text style={styles.operatorRowText}>{row}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -379,7 +502,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 1180,
     alignSelf: "center",
-    paddingTop: spacing.lg
+    paddingTop: spacing.xl
   },
   sectionKicker: {
     color: colors.green,
@@ -429,5 +552,177 @@ const styles = StyleSheet.create({
   featureBody: {
     color: colors.muted,
     lineHeight: 22
+  },
+  pricingGrid: {
+    gap: spacing.md
+  },
+  pricingGridWide: {
+    flexDirection: "row",
+    alignItems: "stretch"
+  },
+  pricingCard: {
+    flex: 1,
+    padding: spacing.md,
+    gap: 0,
+    position: "relative"
+  },
+  featuredPricingCard: {
+    borderColor: colors.borderStrong,
+    backgroundColor: "rgba(60,255,107,0.06)"
+  },
+  recommendedBadge: {
+    alignSelf: "flex-start",
+    borderRadius: radii.sm,
+    backgroundColor: colors.green,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    marginBottom: spacing.md
+  },
+  recommendedText: {
+    color: colors.bg,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    fontWeight: "900"
+  },
+  planHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    minHeight: 48
+  },
+  planIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(60,255,107,0.08)"
+  },
+  featuredPlanIcon: {
+    backgroundColor: colors.green,
+    borderColor: colors.green
+  },
+  planTitleBlock: {
+    flex: 1
+  },
+  planAudience: {
+    color: colors.faint,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    fontWeight: "900",
+    marginBottom: 4
+  },
+  planName: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 21,
+    fontWeight: "900"
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    marginTop: spacing.lg
+  },
+  price: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 34,
+    lineHeight: 39,
+    fontWeight: "900"
+  },
+  cadence: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    paddingBottom: 6
+  },
+  planNote: {
+    color: colors.green,
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    fontWeight: "900",
+    marginTop: 4
+  },
+  planDescription: {
+    color: colors.muted,
+    lineHeight: 21,
+    marginTop: spacing.md,
+    minHeight: 64
+  },
+  bulletStack: {
+    gap: 10,
+    marginTop: spacing.md
+  },
+  planBullet: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 9
+  },
+  planBulletText: {
+    flex: 1,
+    color: colors.text,
+    lineHeight: 20,
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  planCta: {
+    marginTop: spacing.lg,
+    minHeight: 48
+  },
+  opsSection: {
+    paddingBottom: spacing.xl
+  },
+  operatorBand: {
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(77,171,247,0.07)",
+    padding: spacing.md,
+    gap: spacing.lg
+  },
+  operatorBandWide: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  operatorCopy: {
+    flex: 1,
+    maxWidth: 620
+  },
+  operatorTitle: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 24,
+    lineHeight: 31,
+    fontWeight: "900",
+    marginBottom: 12
+  },
+  operatorBody: {
+    color: colors.muted,
+    lineHeight: 23,
+    fontSize: 15
+  },
+  operatorList: {
+    flex: 1,
+    gap: 10
+  },
+  operatorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.green,
+    paddingLeft: 12,
+    minHeight: 34
+  },
+  operatorRowText: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    fontWeight: "800",
+    flex: 1
   }
 });
