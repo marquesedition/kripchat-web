@@ -2,7 +2,7 @@
 
 KripChat is designed so Supabase transports and stores ciphertext, not message plaintext.
 
-For the full code-level explanation, read [`docs/security-model.md`](docs/security-model.md).
+For the full code-level explanation, read [`docs/security-model.md`](docs/security-model.md). The next-generation Shield plan is documented in [`docs/kripchat-shield-protocol.md`](docs/kripchat-shield-protocol.md).
 
 ## What KripChat Protects
 
