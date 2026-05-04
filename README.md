@@ -4,17 +4,28 @@ KripChat is a secure, real-time mobile chat for hackers and security teams. It i
 
 ## Features
 
-- Email/password auth with persisted Supabase sessions
-- Username, avatar URL, push token, and presence profile fields
+- `hacker_handle` + password auth UX with persisted Supabase sessions
+- Username, avatar URL, push token, public E2EE key, and presence profile fields
 - Realtime 1:1 conversations with optimistic message sending
-- Paginated message history and Supabase Realtime inserts
+- Device-targeted encrypted message rows in `encrypted_messages`
+- Paginated message history and Supabase Realtime inserts/updates
 - Typing indicator using Realtime broadcast channels
-- Device-oriented encrypted message architecture in `src/lib/supabase/messages.ts`
+- Device-oriented encrypted message architecture in `features/chat/chatService.ts` and `src/lib/supabase/messages.ts`
 - Multi-device public key registry in `devices` and `prekeys`
 - Blocking, archive, pin, mute, read receipt, disappearing message, and encrypted attachment foundations
+- Membership pricing model with a `$0` Free tier contract in `lib/membershipPlans.ts`
 - Mobile-first Liquid Glass UI: iOS GlassEffect with Android BlurView fallback
 - Dark cybersecurity visual system with neon green/blue accents
 - MVP security: RLS policies, input validation, anti-spam send throttling, and an E2EE-ready data boundary
+
+## Developer Documentation
+
+Start here if you are new to the codebase:
+
+- [`docs/developer-guide.md`](docs/developer-guide.md): onboarding guide, setup, code map, auth flow, chat flow, Supabase/RLS notes, common change recipes, and PR workflow.
+- [`docs/security-model.md`](docs/security-model.md): how KripChat protects chats today, what metadata remains visible, and which security claims are safe.
+- [`SECURITY.md`](SECURITY.md): security policy, current limits, and production-hardening checklist.
+- [`docs/openapi.yaml`](docs/openapi.yaml): API and realtime surface used by the client.
 
 ## Testing And QA
 
@@ -40,8 +51,8 @@ Current automated coverage focuses on:
 - anti-spam throttling
 - crypto visual helpers
 - operator identity formatting
-- auth service signup/signin/signout and confirmation behavior
-- direct conversation guardrails (missing session, unconfirmed email, RLS failure mapping, happy path)
+- auth service handle-based signup/signin/signout behavior
+- direct conversation guardrails (missing session, RLS failure mapping, happy path)
 - chat send flow by message kind (text, image, video, audio, document, location)
 - login/register/protected-route web QA smoke flows
 
@@ -171,12 +182,14 @@ After the first successful production builds, you can submit them with EAS Submi
 
 ## Supabase Notes
 
-Enable Realtime for `messages` and `encrypted_messages` so chat inserts arrive instantly. The migrations create RLS policies that only let authenticated conversation members read conversation metadata, and only recipient devices or senders read rows in `encrypted_messages`.
+Enable Realtime for `messages`, `encrypted_messages`, conversation deletion, and chat request tables so chat inserts and destructive actions arrive instantly. The migrations create RLS policies that only let authenticated conversation members read conversation metadata, and only recipient devices or senders read rows in `encrypted_messages`.
 
 The API surface used by the client is documented as OpenAPI/Swagger in [`docs/openapi.yaml`](docs/openapi.yaml). It covers Supabase Auth, PostgREST/RPC, Storage, Expo Push, and the Realtime channels used by the app.
 
-The current app keeps the original UI wired to the legacy `messages` flow for compatibility, while the new device-encrypted architecture lives under `src/lib`. New work should prefer:
+The current app sends new messages through the device-targeted `encrypted_messages` flow and keeps legacy `messages` compatibility for fallback/older data. New work should prefer:
 
+- `features/chat/chatService.ts`
+- `features/chat/chatStore.ts`
 - `src/lib/supabase/profiles.ts`
 - `src/lib/supabase/devices.ts`
 - `src/lib/supabase/conversations.ts`
@@ -217,21 +230,27 @@ npm run db:migrate:linked
 
 ```text
 app/                  Expo Router screens and navigation
+app/(auth)/           Login/register routes
+app/(tabs)/           Authenticated inbox/profile/help tabs
+app/chat/[threadId]   Open chat route and chat security controls
 components/           Reusable glass UI components
 features/auth/        Auth service and Zustand store
 features/chat/        Chat service, types, and Zustand store
 hooks/                Presence and typing realtime hooks
-lib/                  Supabase client, theme, validation, anti-spam helpers
+lib/                  Shared E2EE, Supabase client, theme, validation, UX errors
 src/lib/crypto/       CryptoProvider interface and local development provider
-src/lib/storage/      expo-secure-store helpers for private keys and device id
-src/lib/supabase/     Device-encrypted Supabase data access layer
+src/lib/storage/      Secure local storage helpers for private keys and device id
+src/lib/supabase/     Supabase data access layer by domain
 services/             Push notification setup
-supabase/migrations/  Database schema, RLS, and helper RPCs
+supabase/migrations/  Database schema, RLS, storage policies, and helper RPCs
+docs/                 Developer and security documentation
 ```
 
-## E2EE Readiness
+For deeper onboarding, read [`docs/developer-guide.md`](docs/developer-guide.md).
 
-Supabase must never receive message plaintext. The legacy chat service already encrypts `messages.body` before insert. The new architecture goes further: `encrypted_messages` stores one ciphertext row per recipient device, with public device bundles in `devices` and `prekeys`.
+## Chat Security Model
+
+Supabase must never receive message plaintext. New messages are inserted into `encrypted_messages` as one ciphertext row per recipient device, with public device bundles in `devices` and `prekeys`.
 
 Current crypto status:
 
@@ -241,3 +260,5 @@ Current crypto status:
 - Replace the local provider with an audited Signal Protocol implementation before production.
 
 Metadata still visible to Supabase includes account ids, device ids, conversation membership, message timing, recipient device routing, file size/type for encrypted attachments, and delivery/read receipt timestamps when enabled.
+
+See [`docs/security-model.md`](docs/security-model.md) for the complete threat model, safe claims, and known gaps.

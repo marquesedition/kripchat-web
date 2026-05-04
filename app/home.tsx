@@ -5,6 +5,7 @@ import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
 import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/features/auth/authStore";
+import { membershipPlans } from "@/lib/membershipPlans";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 
 const featureRows = [
@@ -26,57 +27,6 @@ const featureRows = [
 ] as const;
 
 const signalRows = ["Auth por hacker_handle", "Perfiles con username", "Adjuntos cifrables", "Push notifications"];
-
-const pricingRows = [
-  {
-    icon: "person-outline",
-    plan: "Access",
-    audience: "Free",
-    price: "$0",
-    cadence: "para probar",
-    description: "La puerta de entrada para sentir KripChat sin compromiso.",
-    bullets: ["Chats 1:1 cifrados", "3 conversaciones activas", "Historial basico", "1 dispositivo seguro"],
-    cta: "Crear cuenta gratis",
-    featured: false,
-    note: ""
-  },
-  {
-    icon: "eye-off-outline",
-    plan: "Ghost",
-    audience: "Pro",
-    price: "$8",
-    cadence: "por mes",
-    description: "Control personal completo para freelancers, hackers eticos y operadores serios.",
-    bullets: ["Conversaciones ilimitadas", "Multi-device seguro", "Adjuntos cifrados grandes", "Busqueda, backup y autodestruccion"],
-    cta: "Activar Ghost",
-    featured: true,
-    note: "$72 al ano"
-  },
-  {
-    icon: "people-outline",
-    plan: "Squad",
-    audience: "Team",
-    price: "$49",
-    cadence: "por mes",
-    description: "Espacios privados para squads, agencias y comunidades cerradas.",
-    bullets: ["Hasta 5 miembros", "Roles owner/admin/member", "Invitaciones controladas", "Bloqueo remoto de dispositivos"],
-    cta: "Crear Squad",
-    featured: false,
-    note: ""
-  },
-  {
-    icon: "business-outline",
-    plan: "Ops",
-    audience: "Enterprise",
-    price: "$499+",
-    cadence: "por mes",
-    description: "Infraestructura dedicada para organizaciones con compliance y riesgo real.",
-    bullets: ["SSO/SAML", "Namespace privado", "Deploy dedicado", "SLA, API y soporte prioritario"],
-    cta: "Hablar de Ops",
-    featured: false,
-    note: ""
-  }
-] as const;
 
 const operatorRows = [
   "Free demuestra confianza.",
@@ -197,7 +147,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionKicker}>MEMBRESIAS</Text>
           <Text style={styles.sectionTitle}>Tarifas pensadas para crecer desde un operador hasta una unidad completa</Text>
           <View style={[styles.pricingGrid, isWide && styles.pricingGridWide]}>
-            {pricingRows.map((tier) => (
+            {membershipPlans.map((tier) => (
               <GlassCard key={tier.plan} style={[styles.pricingCard, tier.featured && styles.featuredPricingCard]}>
                 {tier.featured ? (
                   <View style={styles.recommendedBadge}>

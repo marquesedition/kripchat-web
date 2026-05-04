@@ -235,6 +235,8 @@ async function sendDeviceEncryptedMessageCopies(
   const targetUserIds = Array.from(new Set(memberIds.length ? memberIds : [senderId]));
   if (!targetUserIds.includes(senderId)) targetUserIds.push(senderId);
 
+  // Message fan-out happens client-side: one ciphertext row per active recipient device.
+  // Supabase stores routing metadata and ciphertext, while plaintext stays on the client.
   const devicesByUser = await Promise.all(
     targetUserIds.map(async (userId) => ({
       userId,

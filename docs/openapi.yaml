@@ -36,7 +36,11 @@ paths:
   /auth/v1/signup:
     post:
       tags: [Auth]
-      summary: Register with email/password and public profile metadata
+      summary: Register with hacker_handle/password via Supabase Auth
+      description: |
+        Product UI asks for `hacker_handle` and password only. The client derives a
+        private internal auth email with `getAuthEmailForUsername` because
+        Supabase's password provider still expects an `email` field.
       security:
         - SupabaseAnonKey: []
       requestBody:
@@ -57,8 +61,11 @@ paths:
   /auth/v1/token:
     post:
       tags: [Auth]
-      summary: Sign in with email/password
-      description: "Called by `supabase.auth.signInWithPassword`."
+      summary: Sign in with hacker_handle/password via Supabase Auth
+      description: |
+        Called by `supabase.auth.signInWithPassword`. Product UI asks for
+        `hacker_handle`; the client sends the deterministic internal email to
+        Supabase.
       security:
         - SupabaseAnonKey: []
       parameters:
@@ -81,9 +88,9 @@ paths:
                     auth_code:
                       type: string
             examples:
-              emailPassword:
+              handlePassword:
                 value:
-                  email: operator@example.com
+                  email: operator@kripchat.invalid
                   password: correct-horse-battery-staple
       responses:
         "200":
@@ -1147,6 +1154,8 @@ components:
         email:
           type: string
           format: email
+          description: Internal generated auth email derived from `hacker_handle`; never shown in product UI.
+          example: operator@kripchat.invalid
         password:
           type: string
           format: password
@@ -1156,6 +1165,8 @@ components:
           properties:
             username:
               type: string
+              description: Public `hacker_handle`.
+              example: operator
             e2ee_public_key:
               type: string
         gotrue_meta_security:
@@ -1167,6 +1178,8 @@ components:
         email:
           type: string
           format: email
+          description: Internal generated auth email derived from `hacker_handle`.
+          example: operator@kripchat.invalid
         password:
           type: string
           format: password
