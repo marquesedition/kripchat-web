@@ -5,7 +5,7 @@ import { getConversationMembers } from "./conversations";
 import { getUserDevices } from "./devices";
 import { isUserBlocked } from "./blocks";
 import { supabase } from "./client";
-import { assertShieldCryptoProviderAvailable } from "@/src/lib/shield";
+import { assertPreferredCryptoProviderAvailable } from "@/src/lib/shield";
 
 export type SendEncryptedMessageInput = {
   conversationId: string;
@@ -26,7 +26,7 @@ export type SendEncryptedMessageInput = {
 };
 
 export async function sendEncryptedMessage(input: SendEncryptedMessageInput) {
-  assertShieldCryptoProviderAvailable();
+  await assertPreferredCryptoProviderAvailable();
 
   if (await isUserBlocked(input.recipientUserId)) {
     throw new Error("Cannot send messages to a blocked user.");

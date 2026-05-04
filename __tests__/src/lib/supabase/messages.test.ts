@@ -2,7 +2,7 @@ import { markAsRead, sendEncryptedMessage } from "@/src/lib/supabase/messages";
 import { isUserBlocked } from "@/src/lib/supabase/blocks";
 import { localCryptoProvider } from "@/src/lib/crypto";
 import { supabase } from "@/src/lib/supabase/client";
-import { setKripChatRuntimeOverrideForTests } from "@/src/lib/shield";
+import { setKripChatRuntimeOverrideForTests, setPreferredCryptoStack } from "@/src/lib/shield";
 
 jest.mock("@/src/lib/supabase/client", () => ({
   supabase: {
@@ -86,8 +86,8 @@ describe("device encrypted message service", () => {
     expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it("fails closed when Shield crypto is requested before the provider exists", async () => {
-    setKripChatRuntimeOverrideForTests({ cryptoStack: "kripchat-shield-v1" });
+  it("fails closed when Shield crypto is selected before the provider exists", async () => {
+    await setPreferredCryptoStack("kripchat-shield-v1");
 
     await expect(
       sendEncryptedMessage({

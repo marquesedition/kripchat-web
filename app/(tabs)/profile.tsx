@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { Avatar } from "@/components/Avatar";
 import { GlassButton } from "@/components/GlassButton";
 import { GlassCard } from "@/components/GlassCard";
@@ -9,6 +9,7 @@ import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { normalizeUsername } from "@/lib/validation";
 import { getBrowserNotificationPermission, registerForPushNotifications, requestBrowserNotificationPermission } from "@/services/notifications";
+import { getPreferredCryptoStack, setPreferredCryptoStack, type KripChatCryptoStack } from "@/src/lib/shield";
 
 export default function ProfileScreen() {
   const profile = useAuthStore((state) => state.profile);
@@ -16,13 +17,27 @@ export default function ProfileScreen() {
   const signOut = useAuthStore((state) => state.signOut);
   const [username, setUsername] = useState(profile?.username ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
+  const [cryptoStack, setCryptoStack] = useState<KripChatCryptoStack>("legacy-device-envelope-v1");
   const presenceLabel = profile?.online_at ? "PRESENCE SYNCED" : "PRESENCE STANDBY";
   const browserNotificationPermission = Platform.OS === "web" ? getBrowserNotificationPermission() : "unsupported";
+  const shieldSelected = cryptoStack === "kripchat-shield-v1";
 
   useEffect(() => {
     setUsername(profile?.username ?? "");
     setAvatarUrl(profile?.avatar_url ?? "");
   }, [profile]);
+
+  useEffect(() => {
+    let mounted = true;
+    getPreferredCryptoStack()
+      .then((stack) => {
+        if (mounted) setCryptoStack(stack);
+      })
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   async function save() {
     if (!profile) return;
@@ -54,6 +69,22 @@ export default function ProfileScreen() {
     Alert.alert("No disponible", "Este navegador no soporta notificaciones web en este modo.");
   }
 
+  async function changeCryptoStack(useShield: boolean) {
+    const nextStack: KripChatCryptoStack = useShield ? "kripchat-shield-v1" : "legacy-device-envelope-v1";
+    await setPreferredCryptoStack(nextStack);
+    setCryptoStack(nextStack);
+
+    if (useShield) {
+      Alert.alert(
+        "Shield seleccionado",
+        "KripChat Shield queda seleccionado para este dispositivo, pero el proveedor de cifrado final aun no esta activo. Los envios Shield fallaran cerrados hasta completar esa integracion."
+      );
+      return;
+    }
+
+    Alert.alert("Classic seleccionado", "Este dispositivo vuelve al cifrado actual device-envelope-v1.");
+  }
+
   return (
     <ScreenShell>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.container}>
@@ -75,6 +106,24 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.form}>
+              <View style={styles.cryptoPanel}>
+                <View style={styles.cryptoCopy}>
+                  <Text style={styles.label}>ENCRYPTION MODE</Text>
+                  <Text style={styles.cryptoTitle}>{shieldSelected ? "KripChat Shield" : "Classic device envelope"}</Text>
+                  <Text style={styles.cryptoBody}>
+                    {shieldSelected
+                      ? "Hybrid Shield mode is selected for this device. It stays blocked until the production provider is registered."
+                      : "Current stable encryption. One ciphertext envelope per recipient device."}
+                  </Text>
+                </View>
+                <Switch
+                  accessibilityLabel="Toggle KripChat Shield encryption"
+                  value={shieldSelected}
+                  onValueChange={changeCryptoStack}
+                  trackColor={{ false: "rgba(216,232,198,0.18)", true: "rgba(60,255,107,0.45)" }}
+                  thumbColor={shieldSelected ? colors.green : colors.muted}
+                />
+              </View>
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>CALLSIGN</Text>
                 <TextInput
@@ -193,6 +242,36 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 18
+  },
+  cryptoPanel: {
+    minHeight: 108,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: "rgba(60,255,107,0.045)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  cryptoCopy: {
+    flex: 1
+  },
+  cryptoTitle: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: 15,
+    fontWeight: "900",
+    marginTop: 8
+  },
+  cryptoBody: {
+    color: colors.muted,
+    fontFamily: fonts.mono,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8
   },
   fieldGroup: {
     gap: 12
