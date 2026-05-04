@@ -15,11 +15,13 @@ import { useChatStore } from "@/features/chat/chatStore";
 import type { Message, MessageKind } from "@/features/chat/types";
 import { useTypingChannel } from "@/hooks/useTypingChannel";
 import { formatOpsCode, formatShortId } from "@/lib/opsIdentity";
+import { supabase } from "@/lib/supabase";
 import { colors, fonts, radii, spacing } from "@/lib/theme";
 import { getUserFacingErrorMessage } from "@/lib/userFeedback";
 import { sanitizeMessage } from "@/lib/validation";
 
 const EMPTY_MESSAGES: Message[] = [];
+const INBOX_ROUTE = "/(tabs)";
 const VISIBILITY_OPTIONS = [5, 10, 30, 60];
 const AUTO_DESTROY_OPTIONS = [
   { label: "OFF", seconds: null },
@@ -76,9 +78,30 @@ export default function ChatScreen() {
     if (!conversationId || !userId || previewLoading || !previews.length) return;
     if (!peerPreview) {
       Alert.alert("Conversación destruida", "Este canal fue eliminado para todos.");
-      router.replace("/(tabs)");
+      router.replace(INBOX_ROUTE);
     }
   }, [conversationId, peerPreview, previewLoading, previews.length, userId]);
+
+  useEffect(() => {
+    if (!conversationId || !userId) return undefined;
+
+    const channel = supabase
+      .channel(`conversation-deleted-navigation:${conversationId}`)
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "conversations", filter: `id=eq.${conversationId}` },
+        () => {
+          unsubscribeActive();
+          useChatStore.getState().removeConversationLocally(conversationId);
+          router.replace(INBOX_ROUTE);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, unsubscribeActive, userId]);
 
   function goBack() {
     if (router.canGoBack()) {
@@ -86,7 +109,7 @@ export default function ChatScreen() {
       return;
     }
 
-    router.replace("/(tabs)");
+    router.replace(INBOX_ROUTE);
   }
 
   useEffect(() => {
@@ -358,11 +381,11 @@ export default function ChatScreen() {
     if (!conversationId || !userId) return;
     setDestroyingConversation(true);
     setSecurityOpen(false);
-    unsubscribeActive();
-    useChatStore.getState().removeConversationLocally(conversationId);
-    router.replace("/(tabs)");
     try {
       await destroy(conversationId, userId);
+      unsubscribeActive();
+      useChatStore.getState().removeConversationLocally(conversationId);
+      router.replace(INBOX_ROUTE);
     } catch (error) {
       Alert.alert("No se pudo destruir", getUserFacingErrorMessage(error, "No se pudo borrar la conversacion del servidor."));
       await useChatStore.getState().loadPreviews(userId).catch(() => undefined);
