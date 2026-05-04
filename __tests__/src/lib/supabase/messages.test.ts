@@ -2,6 +2,7 @@ import { markAsRead, sendEncryptedMessage } from "@/src/lib/supabase/messages";
 import { isUserBlocked } from "@/src/lib/supabase/blocks";
 import { localCryptoProvider } from "@/src/lib/crypto";
 import { supabase } from "@/src/lib/supabase/client";
+import { setKripChatRuntimeOverrideForTests } from "@/src/lib/shield";
 
 jest.mock("@/src/lib/supabase/client", () => ({
   supabase: {
@@ -30,8 +31,19 @@ jest.mock("@/src/lib/crypto", () => ({
 }));
 
 describe("device encrypted message service", () => {
+  const originalEnv = process.env;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (isUserBlocked as jest.Mock).mockResolvedValue(false);
+    process.env = { ...originalEnv };
+    delete process.env.EXPO_PUBLIC_KRIPCHAT_CRYPTO_STACK;
+    setKripChatRuntimeOverrideForTests(null);
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+    setKripChatRuntimeOverrideForTests(null);
   });
 
   it("inserts ciphertext and never inserts plaintext", async () => {
@@ -71,6 +83,25 @@ describe("device encrypted message service", () => {
         plaintext: "hello"
       })
     ).rejects.toThrow("Cannot send messages to a blocked user.");
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when Shield crypto is requested before the provider exists", async () => {
+    setKripChatRuntimeOverrideForTests({ cryptoStack: "kripchat-shield-v1" });
+
+    await expect(
+      sendEncryptedMessage({
+        conversationId: "conversation-1",
+        senderUserId: "sender-user",
+        senderDeviceId: "sender-device",
+        recipientUserId: "recipient-user",
+        recipientDeviceId: "recipient-device",
+        recipientPublicKey: "recipient-public",
+        plaintext: "hello"
+      })
+    ).rejects.toThrow("no production Shield provider");
+
+    expect(localCryptoProvider.encryptMessage).not.toHaveBeenCalled();
     expect(supabase.from).not.toHaveBeenCalled();
   });
 

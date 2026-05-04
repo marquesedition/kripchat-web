@@ -24,6 +24,7 @@ Start here if you are new to the codebase:
 
 - [`docs/developer-guide.md`](docs/developer-guide.md): onboarding guide, setup, code map, auth flow, chat flow, Supabase/RLS notes, common change recipes, and PR workflow.
 - [`docs/security-model.md`](docs/security-model.md): how KripChat protects chats today, what metadata remains visible, and which security claims are safe.
+- [`docs/kripchat-shield-protocol.md`](docs/kripchat-shield-protocol.md): Shield protocol foundation, dual-app rollout, and the future hybrid encryption plan.
 - [`SECURITY.md`](SECURITY.md): security policy, current limits, and production-hardening checklist.
 - [`docs/openapi.yaml`](docs/openapi.yaml): API and realtime surface used by the client.
 
