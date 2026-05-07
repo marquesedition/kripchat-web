@@ -1,4 +1,5 @@
 import type { KripChatAppMode, KripChatCryptoStack } from "./types";
+import { assertShieldCryptoProviderRegistered } from "./providerRegistry";
 
 const DEFAULT_APP_MODE: KripChatAppMode = "classic";
 const DEFAULT_CRYPTO_STACK: KripChatCryptoStack = "legacy-device-envelope-v1";
@@ -40,15 +41,11 @@ export function isShieldCryptoRequested() {
 export function assertShieldCryptoProviderAvailable() {
   if (!isShieldCryptoRequested()) return;
 
-  throw new Error(
-    "KripChat Shield crypto is requested, but no production Shield provider is registered yet. Keep EXPO_PUBLIC_KRIPCHAT_CRYPTO_STACK=legacy-device-envelope-v1 until the Shield provider lands."
-  );
+  assertShieldCryptoProviderRegistered();
 }
 
 export function assertCryptoProviderAvailableForStack(stack: KripChatCryptoStack) {
   if (stack !== "kripchat-shield-v1") return;
 
-  throw new Error(
-    "KripChat Shield crypto is selected, but no production Shield provider is registered yet. Switch back to Classic encryption or wait until the Shield provider lands."
-  );
+  assertShieldCryptoProviderRegistered();
 }

@@ -37,3 +37,14 @@ jobs:
 
       - name: Web QA smoke tests
         run: npm run test:qa
+
+      - name: Cucumber BDD QA tests
+        run: npm run test:bdd
+
+      - name: Upload Cucumber BDD report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cucumber-bdd-report
+          path: test-results/cucumber-report.html
+          if-no-files-found: ignore

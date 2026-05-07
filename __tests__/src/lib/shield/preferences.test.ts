@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   assertPreferredCryptoProviderAvailable,
   getPreferredCryptoStack,
+  resetShieldCryptoProviderForTests,
   setKripChatRuntimeOverrideForTests,
   setPreferredCryptoStack
 } from "@/src/lib/shield";
@@ -10,10 +11,12 @@ describe("KripChat Shield preferences", () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
     setKripChatRuntimeOverrideForTests(null);
+    resetShieldCryptoProviderForTests();
   });
 
   afterAll(() => {
     setKripChatRuntimeOverrideForTests(null);
+    resetShieldCryptoProviderForTests();
   });
 
   it("defaults to the configured crypto stack", async () => {

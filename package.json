@@ -15,7 +15,7 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit",
-    "test:all": "npm run test:unit && npm run test:qa",
+    "test:all": "npm run test:unit && npm run test:qa && npm run test:bdd",
     "test:unit": "jest --runInBand",
     "test:unit:coverage": "jest --runInBand --coverage",
     "test:unit:report": "jest --runInBand --reporters=default --reporters=jest-html-reporters",
@@ -24,7 +24,9 @@
     "test:qa": "npm run web:export && start-server-and-test 'npm run qa:serve' http://127.0.0.1:4193 'playwright test'",
     "test:qa:headed": "npm run web:export && start-server-and-test 'npm run qa:serve' http://127.0.0.1:4193 'playwright test --headed'",
     "qa:report:open": "playwright show-report",
-    "test:qa:report": "npm run test:qa && npm run qa:report:open"
+    "test:qa:report": "npm run test:qa && npm run qa:report:open",
+    "test:bdd": "npm run web:export && start-server-and-test 'npm run qa:serve' http://127.0.0.1:4193 'cucumber-js'",
+    "test:bdd:headed": "BDD_HEADED=1 npm run test:bdd"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.10",
@@ -66,6 +68,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^12.8.2",
     "@playwright/test": "^1.59.1",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",

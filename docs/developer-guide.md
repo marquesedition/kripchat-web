@@ -55,6 +55,14 @@ Run web smoke QA when UI routes or navigation changed:
 npm run test:qa
 ```
 
+Run BDD QA when user-facing acceptance criteria changed:
+
+```bash
+npm run test:bdd
+```
+
+GitHub Actions runs this BDD suite in `.github/workflows/test.yml` for pull requests and pushes to `main`. The Pages deployment workflow also runs the same quality gates before publishing.
+
 ## Branch And PR Flow
 
 `main` is protected. Do not push directly to `main`.
@@ -95,6 +103,7 @@ src/lib/supabase/     Supabase data helpers by domain
 supabase/migrations/  Database schema, RLS, RPC, storage policies
 __tests__/            Jest unit tests
 tests/qa/             Playwright web smoke tests
+tests/bdd/            Cucumber feature files, support world, and reusable steps
 docs/                 Developer, API, and security documentation
 ```
 
@@ -322,6 +331,7 @@ Use focused tests for the changed layer:
 - `__tests__/src/lib/crypto/*` for crypto provider behavior.
 - `__tests__/lib/*` for shared helpers.
 - `tests/qa/public-smoke.spec.ts` for public web route smoke coverage.
+- `tests/bdd/features/*.feature` for business-readable BDD acceptance coverage.
 
 Minimum before PR:
 

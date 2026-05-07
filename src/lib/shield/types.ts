@@ -15,6 +15,11 @@ export type ShieldSessionState = {
   ratchetEpoch: number;
   createdAt: string;
   updatedAt: string;
+  rootKeyRef?: string;
+  sendingChainRef?: string;
+  receivingChainRef?: string;
+  remoteIdentityFingerprint?: string;
+  providerId?: string;
 };
 
 export type ShieldPublicPreKeyBundle = {
@@ -52,4 +57,26 @@ export type ShieldEnvelopeMetadata = {
   primitives: ShieldPrimitive[];
   pqHybrid: boolean;
   padding: "fixed-bucket-v1";
+  providerId?: string;
+};
+
+export type ShieldPlaintextMessage = {
+  plaintext: string;
+  conversationId: string;
+  senderUserId: string;
+  senderDeviceId: string;
+  recipientUserId: string;
+  recipientDeviceId: string;
+};
+
+export type ShieldEncryptedEnvelope = {
+  ciphertext: string;
+  metadata: ShieldEnvelopeMetadata;
+};
+
+export type ShieldSessionInput = {
+  conversationId: string;
+  localUserId: string;
+  localDeviceId: string;
+  remoteBundle: ShieldPublicPreKeyBundle;
 };

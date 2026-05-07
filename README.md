@@ -25,6 +25,7 @@ Start here if you are new to the codebase:
 - [`docs/developer-guide.md`](docs/developer-guide.md): onboarding guide, setup, code map, auth flow, chat flow, Supabase/RLS notes, common change recipes, and PR workflow.
 - [`docs/security-model.md`](docs/security-model.md): how KripChat protects chats today, what metadata remains visible, and which security claims are safe.
 - [`docs/kripchat-shield-protocol.md`](docs/kripchat-shield-protocol.md): Shield protocol foundation, dual-app rollout, and the future hybrid encryption plan.
+- [`public/database-data-flow.md`](public/database-data-flow.md): public-safe database data trace, use cases, and how each flow appears in Supabase.
 - [`SECURITY.md`](SECURITY.md): security policy, current limits, and production-hardening checklist.
 - [`docs/openapi.yaml`](docs/openapi.yaml): API and realtime surface used by the client.
 
@@ -37,7 +38,7 @@ This project now includes automated testing foundations with **unit tests as the
 - `npm run test:unit:report` runs unit tests and generates an HTML report.
 - `npm run test:unit:report:open` runs unit tests and opens the HTML report.
 - `npm run test` runs unit tests (default).
-- `npm run test:all` runs unit tests plus web QA.
+- `npm run test:all` runs unit tests, Playwright web QA, and Cucumber BDD QA.
 
 Web QA remains available as optional:
 
@@ -45,6 +46,8 @@ Web QA remains available as optional:
 - `npm run test:qa:headed` runs the same QA flow with a visible browser.
 - `npm run qa:report:open` opens the latest Playwright HTML report in your browser.
 - `npm run test:qa:report` runs QA and opens the report immediately.
+- `npm run test:bdd` exports the web build, serves it locally, and runs Cucumber feature scenarios from `tests/bdd/features`.
+- `npm run test:bdd:headed` runs the same Cucumber BDD flow with a visible browser.
 
 Current automated coverage focuses on:
 
@@ -56,6 +59,17 @@ Current automated coverage focuses on:
 - direct conversation guardrails (missing session, RLS failure mapping, happy path)
 - chat send flow by message kind (text, image, video, audio, document, location)
 - login/register/protected-route web QA smoke flows
+- Cucumber BDD feature coverage for auth, landing memberships, protected routes, Swagger/OpenAPI, and the public database data-flow document
+
+### BDD Report (Cucumber)
+
+Cucumber writes its HTML report to `test-results/cucumber-report.html`.
+
+```bash
+npm run test:bdd
+```
+
+CI/CD runs the same BDD suite on pull requests, pushes to `main`, and before the GitHub Pages deployment. The Cucumber HTML report is uploaded as a workflow artifact.
 
 ### Unit Report (Allure-like local dashboard)
 
