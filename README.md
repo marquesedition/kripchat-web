@@ -69,6 +69,8 @@ Cucumber writes its HTML report to `test-results/cucumber-report.html`.
 npm run test:bdd
 ```
 
+CI/CD runs the same BDD suite on pull requests, pushes to `main`, and before the GitHub Pages deployment. The Cucumber HTML report is uploaded as a workflow artifact.
+
 ### Unit Report (Allure-like local dashboard)
 
 For unit tests, use the generated HTML dashboard:

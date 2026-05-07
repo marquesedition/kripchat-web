@@ -61,6 +61,8 @@ Run BDD QA when user-facing acceptance criteria changed:
 npm run test:bdd
 ```
 
+GitHub Actions runs this BDD suite in `.github/workflows/test.yml` for pull requests and pushes to `main`. The Pages deployment workflow also runs the same quality gates before publishing.
+
 ## Branch And PR Flow
 
 `main` is protected. Do not push directly to `main`.
