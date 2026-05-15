@@ -214,7 +214,7 @@ select
   count(*) as object_count,
   pg_size_pretty(coalesce(sum((metadata->>'size')::bigint), 0)::bigint) as total_size
 from storage.objects
-where bucket_id = 'chat-attachments'
+where bucket_id in ('encrypted-media', 'chat-attachments')
   and name ~ '^[0-9a-f-]{36}/'
 group by bucket_id, split_part(name, '/', 1)
 order by object_count desc;

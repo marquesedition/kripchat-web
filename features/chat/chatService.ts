@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { encryptedMediaBucket, supabase } from "@/lib/supabase";
 import { canSendMessage } from "@/lib/antiSpam";
 import {
   decryptBlobForConversation,
@@ -14,7 +14,7 @@ import { getDeviceId } from "@/src/lib/storage/secureStorage";
 import { getUserDevices, registerCurrentDevice, type DeviceRecord } from "@/src/lib/supabase/devices";
 import { sendExpoPushNotification } from "@/services/notifications";
 
-const ATTACHMENT_BUCKET = "chat-attachments";
+const ATTACHMENT_BUCKET = encryptedMediaBucket;
 const SIGNED_URL_TTL_SECONDS = 60;
 const PEER_KEY_RETRY_DELAYS_MS = [250, 750, 1500] as const;
 const peerPublicKeyCache = new Map<string, string | null>();

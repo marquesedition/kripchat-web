@@ -23,7 +23,7 @@ test.describe("public web experience", () => {
     await page.getByText("Enter").first().click();
 
     await expect(page.getByText("Supabase required")).toBeVisible();
-    await expect(page.getByText("Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment.")).toBeVisible();
+    await expect(page.getByText("Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to your environment.")).toBeVisible();
     await expect(page).toHaveURL(/\/login$/);
   });
 

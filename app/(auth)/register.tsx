@@ -19,7 +19,7 @@ export default function RegisterScreen() {
 
   async function onSubmit() {
     if (!isSupabaseConfigured) {
-      Alert.alert("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment.");
+      Alert.alert("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to your environment.");
       return;
     }
     if (!isValidUsername(username) || !isValidPassword(password)) {

@@ -113,7 +113,8 @@ cp .env.example .env
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-public-publishable-key
+EXPO_PUBLIC_ENCRYPTED_MEDIA_BUCKET=encrypted-media
 EXPO_PUBLIC_SITE_URL=https://kripchat.com
 ```
 
@@ -149,7 +150,7 @@ Repository setup required in GitHub:
 
 ```text
 EXPO_PUBLIC_SUPABASE_URL
-EXPO_PUBLIC_SUPABASE_ANON_KEY
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ```
 
 3. If the repo needs auto-enablement for Pages, also add:
@@ -216,7 +217,8 @@ The current app sends new messages through the device-targeted `encrypted_messag
 
 ```text
 EXPO_PUBLIC_SUPABASE_URL=
-EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+EXPO_PUBLIC_ENCRYPTED_MEDIA_BUCKET=encrypted-media
 EXPO_PUBLIC_SITE_URL=
 ```
 
@@ -235,7 +237,7 @@ Or authenticate/link the CLI and apply to the linked project:
 
 ```bash
 npx supabase login
-npx supabase link --project-ref bmvbqmibvfsbkfkcdesv
+npx supabase link --project-ref ymwlymasveorwpaexyql
 npm run db:migrate:linked
 ```
 

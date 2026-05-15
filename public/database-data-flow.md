@@ -12,7 +12,7 @@ without secrets, service-role keys, passwords, or private cryptographic keys.
 | Conversations | `conversations`, `conversation_members`, `conversation_participants` | Chat metadata and membership | Conversation ids, type, settings, member controls, legacy participant compatibility |
 | Requests | `chat_requests` | Inbox request flow before a direct chat starts | Requester, recipient, status, accepted conversation id |
 | Messages | `encrypted_messages`, `messages` | Current device-targeted encrypted messages plus legacy fallback | Ciphertext, routing metadata, delivery/read timestamps, attachment metadata |
-| Attachments | Storage bucket `chat-attachments` | Encrypted file payloads | Object path and encrypted bytes; type/size metadata can still be visible |
+| Attachments | Storage bucket `encrypted-media` | Encrypted file payloads | Object path and encrypted bytes; type/size metadata can still be visible |
 | Blocking | `blocked_users` | User block graph | Blocker id, blocked id, timestamp |
 | Audit | `security_audit_events` | Non-sensitive security events | Actor, optional conversation, event type, JSON metadata |
 
@@ -147,14 +147,14 @@ encrypted_messages.read_at = timestamp
 ### 8. Send an attachment
 
 1. Client encrypts the file bytes.
-2. Encrypted bytes are uploaded to private storage bucket `chat-attachments`.
+2. Encrypted bytes are uploaded to private storage bucket `encrypted-media`.
 3. The related encrypted message row stores path/type/size metadata.
 4. Opening the attachment creates a short-lived signed URL and decrypts locally.
 
 Database/storage view:
 
 ```text
-storage.objects.bucket_id = 'chat-attachments'
+storage.objects.bucket_id = 'encrypted-media'
 storage.objects.name = '<conversation_id>/<sender_id>/<timestamp>-<safe_name>'
 encrypted_messages.encrypted_file_url = storage path
 encrypted_messages.file_type / file_size = metadata

@@ -23,7 +23,7 @@ Característica: Autenticacion con hacker_handle
     Y pulso el texto "Enter"
     Entonces debo ver estos textos:
       | Supabase required |
-      | Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment. |
+      | Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to your environment. |
     Y debo estar en la ruta "/login"
 
   Escenario: El login normaliza el hacker_handle mientras se escribe

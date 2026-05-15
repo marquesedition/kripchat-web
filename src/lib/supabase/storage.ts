@@ -1,8 +1,8 @@
 import { localCryptoProvider } from "@/src/lib/crypto";
 import { decodeBase64 } from "tweetnacl-util";
-import { supabase } from "./client";
+import { encryptedMediaBucket, supabase } from "./client";
 
-const BUCKET = "encrypted-attachments";
+const BUCKET = encryptedMediaBucket;
 
 export async function uploadEncryptedAttachment(input: {
   conversationId: string;

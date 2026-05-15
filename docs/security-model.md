@@ -113,7 +113,7 @@ New chat work should prefer `encrypted_messages`. Keep legacy compatibility unti
 
 ## Attachments
 
-Attachments are stored in the private `chat-attachments` bucket.
+Attachments are stored in the private encrypted media bucket configured by `EXPO_PUBLIC_ENCRYPTED_MEDIA_BUCKET` (`encrypted-media` in the new Supabase project).
 
 Important files:
 

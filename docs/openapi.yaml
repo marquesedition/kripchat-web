@@ -14,12 +14,12 @@ info:
     bodies are encrypted before insert; `encrypted_messages.ciphertext` is one
     encrypted envelope per recipient device.
 servers:
-  - url: https://bmvbqmibvfsbkfkcdesv.supabase.co
+  - url: https://ymwlymasveorwpaexyql.supabase.co
     description: KripChat Supabase project
   - url: https://exp.host
     description: Expo Push API
 security:
-  - SupabaseAnonKey: []
+  - SupabasePublishableKey: []
   - SupabaseJwt: []
 tags:
   - name: Auth
@@ -42,7 +42,7 @@ paths:
         private internal auth email with `getAuthEmailForUsername` because
         Supabase's password provider still expects an `email` field.
       security:
-        - SupabaseAnonKey: []
+        - SupabasePublishableKey: []
       requestBody:
         required: true
         content:
@@ -67,7 +67,7 @@ paths:
         `hacker_handle`; the client sends the deterministic internal email to
         Supabase.
       security:
-        - SupabaseAnonKey: []
+        - SupabasePublishableKey: []
       parameters:
         - in: query
           name: grant_type
@@ -133,7 +133,7 @@ paths:
       summary: Verify email OTP
       description: "Used by the `/auth/confirm` route when `token_hash` is present."
       security:
-        - SupabaseAnonKey: []
+        - SupabasePublishableKey: []
       requestBody:
         required: true
         content:
@@ -915,7 +915,7 @@ paths:
     post:
       tags: [Storage]
       summary: Upload encrypted attachment/blob
-      description: "Used for `chat-attachments` and `encrypted-attachments`. Upload body must already be encrypted."
+      description: "Used for the private `encrypted-media` bucket. Upload body must already be encrypted."
       security:
         - SupabaseJwt: []
       parameters:
@@ -1039,7 +1039,7 @@ paths:
           description: Expo push response
 
 x-supabase-realtime:
-  endpoint: wss://bmvbqmibvfsbkfkcdesv.supabase.co/realtime/v1/websocket
+  endpoint: wss://ymwlymasveorwpaexyql.supabase.co/realtime/v1/websocket
   transports:
     - websocket
   channels:
@@ -1070,11 +1070,11 @@ x-supabase-realtime:
 
 components:
   securitySchemes:
-    SupabaseAnonKey:
+    SupabasePublishableKey:
       type: apiKey
       in: header
       name: apikey
-      description: Public Supabase anon/publishable key.
+      description: Public Supabase publishable key. Legacy anon JWT keys are still accepted during the transition.
     SupabaseJwt:
       type: http
       scheme: bearer
@@ -1117,7 +1117,7 @@ components:
       required: true
       schema:
         type: string
-        enum: [chat-attachments, encrypted-attachments]
+        enum: [encrypted-media]
     ObjectPath:
       in: path
       name: path

@@ -1,1 +1,1 @@
-export { isSupabaseConfigured, supabase } from "@/lib/supabase";
+export { encryptedMediaBucket, isSupabaseConfigured, supabase } from "@/lib/supabase";

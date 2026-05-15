@@ -44,7 +44,7 @@ export default function LoginScreen() {
   async function onSubmit() {
     setAuthError(null);
     if (!isSupabaseConfigured) {
-      showLoginError("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to your environment.");
+      showLoginError("Supabase required", "Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to your environment.");
       return;
     }
     if (!isValidUsername(username) || !password) {

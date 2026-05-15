@@ -24,7 +24,8 @@ Required public Expo variables:
 
 ```text
 EXPO_PUBLIC_SUPABASE_URL=
-EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+EXPO_PUBLIC_ENCRYPTED_MEDIA_BUCKET=encrypted-media
 EXPO_PUBLIC_SITE_URL=
 ```
 
@@ -223,7 +224,7 @@ Attachment upload:
 1. The app reads the local file as a Blob.
 2. It derives the conversation shared key.
 3. It encrypts the Blob into an `application/octet-stream` payload.
-4. It uploads to the private `chat-attachments` bucket.
+4. It uploads to the private encrypted media bucket (`EXPO_PUBLIC_ENCRYPTED_MEDIA_BUCKET`, `encrypted-media` in the new Supabase project).
 5. Storage policies only allow conversation members to read/write paths under that conversation id.
 
 Attachment open:
